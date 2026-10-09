@@ -962,18 +962,26 @@ export const make = Effect.gen(function* () {
 
   return BitbucketApi.of({
     request,
-    probeAuth: executeJson(
-      "probeAuth",
-      HttpClientRequest.get(apiUrl("/user")),
-      BitbucketUserSchema,
-    ).pipe(
-      Effect.map((user) => ({
-        status: "authenticated" as const,
-        account: nonEmpty(user.username ?? user.display_name ?? user.account_id),
-        host: Option.some("bitbucket.org"),
-        detail: Option.none<string>(),
-      })),
-      Effect.catch(() => currentCredential.pipe(Effect.map(authFromCredential))),
+    // Discovery runs whenever a client opens a thread, so without a configured credential
+    // this answers locally instead of calling bitbucket.org.
+    probeAuth: currentCredential.pipe(
+      Effect.flatMap((credential) =>
+        credential === null
+          ? Effect.succeed(authFromCredential(null))
+          : executeJson(
+              "probeAuth",
+              HttpClientRequest.get(apiUrl("/user")),
+              BitbucketUserSchema,
+            ).pipe(
+              Effect.map((user) => ({
+                status: "authenticated" as const,
+                account: nonEmpty(user.username ?? user.display_name ?? user.account_id),
+                host: Option.some("bitbucket.org"),
+                detail: Option.none<string>(),
+              })),
+              Effect.orElseSucceed(() => authFromCredential(credential)),
+            ),
+      ),
     ),
     listPullRequests: (input) =>
       resolveRepository(input).pipe(
