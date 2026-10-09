@@ -43,7 +43,7 @@ provides=("t3code=$pkgver")
 conflicts=('t3code')
 options=('!debug' '!strip')
 
-_appimage="T3-Code-${pkgver}-x86_64.AppImage"
+_appimage="T3-Code-PE-${pkgver}-x86_64.AppImage"
 source=(
   "$_appimage::https://github.com/pingdotgg/t3code/releases/download/v${pkgver}/$_appimage"
   "${pkgname}-${pkgver}-LICENSE::https://raw.githubusercontent.com/pingdotgg/t3code/v${pkgver}/LICENSE"
