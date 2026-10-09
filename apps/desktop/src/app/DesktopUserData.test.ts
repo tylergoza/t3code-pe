@@ -4,7 +4,7 @@ import * as Effect from "effect/Effect";
 
 import { resolveUserDataPath } from "./DesktopUserData.ts";
 
-it.effect("uses T3 Code EE profile names and never an upstream T3 Code profile", () =>
+it.effect("uses T3 Code PE profile names and never an upstream T3 Code profile", () =>
   Effect.gen(function* () {
     for (const platform of ["darwin", "win32", "linux"] as const) {
       assert.equal(
@@ -13,7 +13,7 @@ it.effect("uses T3 Code EE profile names and never an upstream T3 Code profile",
           isDevelopment: false,
           platform,
         }),
-        "/profiles/t3code-ee",
+        "/profiles/t3code-pe",
       );
     }
     assert.equal(
@@ -22,7 +22,7 @@ it.effect("uses T3 Code EE profile names and never an upstream T3 Code profile",
         isDevelopment: true,
         platform: "darwin",
       }),
-      "/profiles/t3code-ee-dev",
+      "/profiles/t3code-pe-dev",
     );
   }).pipe(Effect.provide(NodeServices.layer)),
 );

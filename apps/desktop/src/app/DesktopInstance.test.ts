@@ -75,7 +75,7 @@ describe("DesktopInstance", () => {
 
       // The lock lives in the userData directory, so the real path is set first.
       assert.deepEqual(events, [
-        "setPath:userData:/tmp/app-data/t3code-ee-dev",
+        "setPath:userData:/tmp/app-data/t3code-pe-dev",
         "requestSingleInstanceLock",
         "releaseSingleInstanceLock",
       ]);
@@ -87,13 +87,13 @@ describe("DesktopInstance", () => {
       name: "packaged Windows",
       isDevelopment: false,
       platform: "win32" as const,
-      userData: "/tmp/app-data/t3code-ee",
+      userData: "/tmp/app-data/t3code-pe",
     },
     {
       name: "development",
       isDevelopment: true,
       platform: "win32" as const,
-      userData: "/tmp/app-data/t3code-ee-dev",
+      userData: "/tmp/app-data/t3code-pe-dev",
     },
   ])(
     "acquires the lock before startup can yield to the event loop ($name)",
@@ -191,19 +191,19 @@ it.effect(
       const instance = yield* DesktopInstance.DesktopInstance;
       yield* instance.configure;
       const event = { preventDefault: vi.fn() };
-      listeners.get("open-url")!(event, "t3code-ee-dev://app/auth/callback?code=other-code");
-      listeners.get("open-url")!(event, "t3code-ee://app/welcome");
+      listeners.get("open-url")!(event, "t3code-pe-dev://app/auth/callback?code=other-code");
+      listeners.get("open-url")!(event, "t3code-pe://app/welcome");
       assert.equal(loadURL.mock.calls.length, 0);
       assert.equal(event.preventDefault.mock.calls.length, 0);
       listeners.get("second-instance")!({}, [
         "t3",
-        "t3code-ee-dev://app/settings/providers?instanceId=work&code=never-forward",
+        "t3code-pe-dev://app/settings/providers?instanceId=work&code=never-forward",
       ]);
       yield* Effect.promise(() => revealed.promise);
       assert.deepEqual(loadURL.mock.calls, [
-        ["t3code-ee-dev://app/settings/providers?instanceId=work"],
+        ["t3code-pe-dev://app/settings/providers?instanceId=work"],
       ]);
-      listeners.get("open-url")!(event, "t3code-ee-dev://app/welcome#agents:machine-id");
+      listeners.get("open-url")!(event, "t3code-pe-dev://app/welcome#agents:machine-id");
       assert.equal(event.preventDefault.mock.calls.length, 1);
     }).pipe(
       Effect.scoped,

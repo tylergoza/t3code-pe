@@ -256,8 +256,8 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
   });
 
   it("switches desktop packaging product names to nightly for nightly builds", () => {
-    assert.equal(resolveDesktopProductName("0.0.17"), "T3 Code EE");
-    assert.equal(resolveDesktopProductName("0.0.17-nightly.20260413.42"), "T3 Code EE (Nightly)");
+    assert.equal(resolveDesktopProductName("0.0.17"), "T3 Code PE");
+    assert.equal(resolveDesktopProductName("0.0.17-nightly.20260413.42"), "T3 Code PE (Nightly)");
   });
 
   it("switches desktop packaging icons to the nightly artwork for nightly versions", () => {
@@ -631,7 +631,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
         "**/*.map",
       ]);
       assert.deepStrictEqual(mac.dmg, {
-        title: "T3 Code EE 1.2.3 Installer",
+        title: "T3 Code PE 1.2.3 Installer",
         background: "dmg/dmg-background-latest.png",
         window: { width: 640, height: 432 },
         contents: [
@@ -646,7 +646,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
       // Linux must register the renderer schemes so the generated .desktop
       // entry advertises MimeType=x-scheme-handler/t3code; for OAuth deep links.
       assert.deepStrictEqual((linux.linux as Record<string, unknown>).protocols, [
-        { name: "T3 Code EE", schemes: ["t3code-ee", "t3code-ee-dev"] },
+        { name: "T3 Code PE", schemes: ["t3code-pe", "t3code-pe-dev"] },
       ]);
       assert.deepStrictEqual(linux.toolsets, { appimage: "1.0.3" });
       assert.notProperty(mac, "toolsets");
@@ -1831,10 +1831,10 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
       const config = yield* createBuildConfig("mac", "dmg", "1.2.3", true, false, undefined);
 
       const mac = config.mac as Record<string, unknown>;
-      assert.equal(config.appId, "com.t3tools.t3code-ee");
+      assert.equal(config.appId, "com.t3tools.t3code-pe");
       assert.match(String(mac.sign), /[\\/]scripts[\\/]sign-macos\.ts$/);
       assert.deepStrictEqual(mac.protocols, [
-        { name: "T3 Code EE", schemes: ["t3code-ee", "t3code-ee-dev"] },
+        { name: "T3 Code PE", schemes: ["t3code-pe", "t3code-pe-dev"] },
       ]);
     }).pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} })))),
   );

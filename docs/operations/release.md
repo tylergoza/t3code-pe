@@ -1,8 +1,8 @@
 # Releases
 
-> For maintainers. Using T3 Code EE? See [docs/user](../user/).
+> For maintainers. Using T3 Code PE? See [docs/user](../user/).
 
-T3 Code EE has no release process or CI yet. Builds are made and checked locally. This page records
+T3 Code PE has no release process or CI yet. Builds are made and checked locally. This page records
 what a future release has to provide so the features that depend on it keep working.
 
 ## Local builds
@@ -22,7 +22,7 @@ workspace.
 
 ## What a release must publish
 
-Several features download release artifacts from GitHub Releases on `tylergoza/t3code-ee`
+Several features download release artifacts from GitHub Releases on `tylergoza/t3code-pe`
 (`CLI_RELEASE_REPOSITORY` in `packages/shared/src/cliRelease.ts`). All of them fail until releases
 exist there:
 
@@ -65,7 +65,7 @@ electron-builder reads these from the environment:
 - `APPLE_API_KEY`: path to the App Store Connect API key (`.p8`), used for notarization
 - `APPLE_API_KEY_ID` and `APPLE_API_ISSUER`
 
-Create the certificate for an explicit App ID of `com.t3tools.t3code-ee`.
+Create the certificate for an explicit App ID of `com.t3tools.t3code-pe`.
 
 ### Windows
 
@@ -87,7 +87,7 @@ backend reads the archive in place through Electron. Packaged Windows builds als
 `resources/wsl-runtime.tar.gz` plus its SHA-256 sidecar: the Linux CLI archive
 (`t3-<version>-linux-<arch>.tar.gz`, the same arch as the Windows host), passed to the Windows build
 as `--wsl-runtime` and copied in verbatim so WSL runs the exact bytes a Linux user downloads. WSL
-verifies and extracts that archive into `~/.t3code-ee/wsl-runtime/sha256-<archive-digest>` inside
+verifies and extracts that archive into `~/.t3code-pe/wsl-runtime/sha256-<archive-digest>` inside
 the selected distro, then reuses it for later launches of the same update.
 
 Windows keeps JavaScript and package metadata inside `app.asar` and unpacks only native libraries

@@ -1,5 +1,5 @@
 /**
- * Product analytics service. T3 Code EE ships no analytics: the live layer is
+ * Product analytics service. T3 Code PE ships no analytics: the live layer is
  * a no-op, and call sites keep calling `record` so the event shape stays
  * visible in one place.
  *

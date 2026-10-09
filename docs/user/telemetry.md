@@ -1,6 +1,6 @@
 # Privacy and network use
 
-T3 Code EE sends no product analytics or usage data. The server does not record or upload events
+T3 Code PE sends no product analytics or usage data. The server does not record or upload events
 about your sessions, providers, or clients, and nothing is sent to the T3 Code maintainers.
 
 There is no T3 Connect, hosted account, relay, or Tailscale integration. Clients reach your server

@@ -52,7 +52,7 @@ import { Command, Flag } from "effect/cli";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
 const LINUX_ICON_SIZES = [16, 22, 24, 32, 48, 64, 128, 256, 512] as const;
-const DESKTOP_APP_ID = "com.t3tools.t3code-ee";
+const DESKTOP_APP_ID = "com.t3tools.t3code-pe";
 
 const BuildPlatform = Schema.Literals(["mac", "linux", "win"]);
 const BuildArch = Schema.Literals(["arm64", "x64", "universal"]);
@@ -2242,7 +2242,7 @@ export function resolveDesktopRuntimeDependencies(
   );
 }
 
-// T3 Code EE: auto-update is opt-in. Only an explicit
+// T3 Code PE: auto-update is opt-in. Only an explicit
 // T3CODE_DESKTOP_UPDATE_REPOSITORY bakes a feed into the build; CI's ambient
 // GITHUB_REPOSITORY no longer does, so default builds never phone home.
 export const resolveGitHubPublishConfig = Effect.fn("resolveGitHubPublishConfig")(function* (
@@ -2320,8 +2320,8 @@ export function resolvePackageManagerUserAgent(packageManager: string): string {
 
 export function resolveDesktopProductName(version: string): string {
   return resolveDesktopUpdateChannel(version) === "nightly"
-    ? "T3 Code EE (Nightly)"
-    : (desktopPackageJson.productName ?? "T3 Code EE");
+    ? "T3 Code PE (Nightly)"
+    : (desktopPackageJson.productName ?? "T3 Code PE");
 }
 
 export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
@@ -2391,12 +2391,12 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       category: "public.app-category.developer-tools",
       extendInfo: {
         NSScreenCaptureUsageDescription:
-          "T3 Code EE captures the active window when you use the window capture shortcut.",
+          "T3 Code PE captures the active window when you use the window capture shortcut.",
       },
       protocols: [
         {
-          name: "T3 Code EE",
-          schemes: ["t3code-ee", "t3code-ee-dev"],
+          name: "T3 Code PE",
+          schemes: ["t3code-pe", "t3code-pe-dev"],
         },
       ],
       ...(signed ? { sign: path.join(repoRoot, "scripts/sign-macos.ts") } : {}),
@@ -2438,7 +2438,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       // resources/package-type into the .deb only, so electron-updater updates
       // each install in its own format.
       target: target === "AppImage" ? [target, "deb"] : [target],
-      executableName: "t3code-ee",
+      executableName: "t3code-pe",
       icon: "icons",
       category: "Development",
       synopsis: "Desktop GUI for coding agents",
@@ -2446,25 +2446,25 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       maintainer: "T3 Tools <hello@t3.codes>",
       // electron-builder turns these into MimeType=x-scheme-handler/<scheme>;
       // in the .desktop entry (Exec already gets %U), so browsers can hand
-      // t3code-ee:// OAuth callbacks to the app.
+      // t3code-pe:// OAuth callbacks to the app.
       protocols: [
         {
-          name: "T3 Code EE",
-          schemes: ["t3code-ee", "t3code-ee-dev"],
+          name: "T3 Code PE",
+          schemes: ["t3code-pe", "t3code-pe-dev"],
         },
       ],
       desktop: {
         entry: {
-          StartupWMClass: "t3code-ee",
+          StartupWMClass: "t3code-pe",
         },
       },
     };
     buildConfig.deb = {
       // FPM runs outside the staged app directory, so source paths must be absolute.
-      // AppStream consumers associate this metadata with our t3code-ee.desktop entry.
+      // AppStream consumers associate this metadata with our t3code-pe.desktop entry.
       fpm: [
-        `${path.join(repoRoot, "apps/desktop/resources/linux/com.t3tools.t3code-ee.metainfo.xml")}=/usr/share/metainfo/com.t3tools.t3code-ee.metainfo.xml`,
-        `${path.join(repoRoot, "LICENSE")}=/usr/share/doc/t3code-ee/copyright`,
+        `${path.join(repoRoot, "apps/desktop/resources/linux/com.t3tools.t3code-pe.metainfo.xml")}=/usr/share/metainfo/com.t3tools.t3code-pe.metainfo.xml`,
+        `${path.join(repoRoot, "LICENSE")}=/usr/share/doc/t3code-pe/copyright`,
       ],
       // Electron's runtime libraries. Debian 13 and Ubuntu 24.04 renamed some
       // for 64-bit time; the old name is the fallback for older releases.
@@ -3340,14 +3340,14 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
       ? path.join(stageAppDir, WINDOWS_SERVER_RESOURCE_SOURCE_DIR, WINDOWS_SERVER_ASAR_RESOURCE)
       : undefined;
   const stagePackageJson: StagePackageJson = {
-    name: "t3code-ee",
+    name: "t3code-pe",
     version: appVersion,
     buildVersion: appVersion,
     t3codeCommitHash: commitHash,
     private: true,
     packageManager: rootPackageJson.packageManager,
     description:
-      "T3 Code EE is an open-source desktop app for coding agents. Work with your existing agent subscriptions, review code changes, and run commands in your projects. Connect from desktop, web, or mobile to continue working remotely.",
+      "T3 Code PE is an open-source desktop app for coding agents. Work with your existing agent subscriptions, review code changes, and run commands in your projects. Connect from desktop, web, or mobile to continue working remotely.",
     license: "MIT",
     // Required by the .deb control file.
     homepage: "https://t3.codes",
@@ -3629,7 +3629,7 @@ const buildDesktopArtifactCli = Command.make("build-desktop-artifact", {
     Flag.optional,
   ),
 }).pipe(
-  Command.withDescription("Build a desktop artifact for T3 Code EE."),
+  Command.withDescription("Build a desktop artifact for T3 Code PE."),
   Command.withHandler((input) => Effect.flatMap(resolveBuildOptions(input), buildDesktopArtifact)),
 );
 
