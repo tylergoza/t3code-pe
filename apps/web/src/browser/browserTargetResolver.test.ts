@@ -27,7 +27,7 @@ describe("browser target resolver", () => {
     });
   });
 
-  it("preserves explicit loopback URL navigation for a remote Tailscale environment", async () => {
+  it("preserves explicit loopback URL navigation for a remote environment", async () => {
     readPreparedConnection.mockReturnValue({ httpBaseUrl: "http://100.65.180.100:3773" });
     const { resolveBrowserNavigationTarget } = await import("./browserTargetResolver");
     expect(
@@ -277,8 +277,6 @@ describe("browser target resolver", () => {
       "printer.local..",
       "printer.home.arpa.",
       "printer.home.arpa..",
-      "devbox.example.ts.net.",
-      "devbox.example.ts.net..",
     ];
     const publicHosts = [
       "1.0.0.0",
@@ -342,7 +340,6 @@ describe("browser target resolver", () => {
       "app.test..",
       "printer.local..",
       "printer.home.arpa..",
-      "devbox.example.ts.net..",
       "127.0.0.1..",
       "127.1..",
       "10.1..",

@@ -5,8 +5,7 @@
  * on the environment host.
  *
  * Host precedence: a desktop-SSH environment's real `~/.ssh/config` alias
- * beats server-advertised names; among advertised names the tailnet MagicDNS
- * name beats mDNS `<hostname>.local` (server sends them in that order).
+ * beats server-advertised names (mDNS `<hostname>.local`).
  */
 import type { ConnectionTarget } from "@t3tools/client-runtime/connection";
 import {
@@ -74,7 +73,7 @@ export function resolveRemoteOpenState(input: {
     // The desktop app manages its own primary backend, so it is always on
     // this machine even when its URL is not loopback (wsl-only mode binds
     // the WSL2 NAT address). In a browser, a loopback primary means the
-    // browser runs on the serving machine; a tailnet/LAN URL means remote.
+    // browser runs on the serving machine; a LAN URL means remote.
     if (input.isDesktopRenderer) {
       return LOCAL_EXEC;
     }

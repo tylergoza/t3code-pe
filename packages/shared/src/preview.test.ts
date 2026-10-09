@@ -12,7 +12,7 @@ describe("resolveAddressBarInput", () => {
   it("opens what users type as addresses", () => {
     expect(resolveAddressBarInput("localhost:5173")).toBe("http://localhost:5173/");
     expect(resolveAddressBarInput("127.0.0.1:3000/path")).toBe("http://127.0.0.1:3000/path");
-    expect(resolveAddressBarInput("my-box.tailnet.ts.net")).toBe("https://my-box.tailnet.ts.net/");
+    expect(resolveAddressBarInput("my-box.example.com")).toBe("https://my-box.example.com/");
     expect(resolveAddressBarInput("cnn.com")).toBe("https://cnn.com/");
     expect(resolveAddressBarInput("devbox:8080")).toBe("https://devbox:8080/");
     expect(resolveAddressBarInput(" https://example.com/a b ")).toBe("https://example.com/a%20b");

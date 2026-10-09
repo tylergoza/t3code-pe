@@ -11,7 +11,7 @@ import {
   BearerConnectionTarget,
   ConnectionBlockedError,
   ConnectionTransientError,
-  RelayConnectionTarget,
+  SshConnectionTarget,
   type SupervisorConnectionState,
 } from "./model.ts";
 import {
@@ -94,45 +94,38 @@ describe("connection presentation", () => {
       };
     };
     const lan = route("lan", "http://192.168.4.53:3773/");
-    const tailnet = route("tailnet", "http://100.115.1.44:3773/");
-    const serve = route("serve", "https://machine.tailnet.ts.net/");
+    const other = route("other", "http://192.168.4.54:3773/");
+    const serve = route("serve", "https://machine.example.com/");
     const entry: ConnectionCatalogEntry = {
       ...ENTRY,
       target: lan.target,
       profile: lan.profile,
-      alternateRoutes: [tailnet, serve],
+      alternateRoutes: [other, serve],
     };
 
-    expect(environmentMcpUrl({ entry, connectedTarget: tailnet.target })).toBe(
-      "http://100.115.1.44:3773/mcp",
+    expect(environmentMcpUrl({ entry, connectedTarget: other.target })).toBe(
+      "http://192.168.4.54:3773/mcp",
     );
     // Not connected: the preferred route, plain http or not.
     expect(environmentMcpUrl({ entry })).toBe("http://192.168.4.53:3773/mcp");
   });
 
   it("passes over routes without an address of their own", () => {
-    const relay = new RelayConnectionTarget({
+    const ssh = new SshConnectionTarget({
       environmentId: TARGET.environmentId,
       label: TARGET.label,
+      connectionId: "ssh-1",
     });
     const entry: ConnectionCatalogEntry = {
       ...ENTRY,
-      target: relay,
+      target: ssh,
       profile: Option.none(),
       alternateRoutes: [{ target: ENTRY.target, profile: ENTRY.profile }],
     };
 
-    // Relay discovery has not reported the tunnel address yet.
-    expect(environmentMcpUrl({ entry, connectedTarget: relay })).toBe(
+    expect(environmentMcpUrl({ entry, connectedTarget: ssh })).toBe(
       "https://environment.example.test/mcp",
     );
-    expect(
-      environmentMcpUrl({
-        entry,
-        connectedTarget: relay,
-        relayHttpBaseUrl: "https://tunnel.example.test",
-      }),
-    ).toBe("https://tunnel.example.test/mcp");
   });
 
   it("distinguishes initial connection, reconnect, and retry errors", () => {

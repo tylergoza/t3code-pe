@@ -1,17 +1,6 @@
-import * as NodeServices from "@effect/platform-node/NodeServices";
-import { it as effectIt } from "@effect/vitest";
 import type * as NodeOS from "node:os";
-import * as Effect from "effect/Effect";
-import * as Layer from "effect/Layer";
-import * as Sink from "effect/Sink";
-import * as Stream from "effect/Stream";
-import * as HttpClient from "effect/http/HttpClient";
-import * as HttpClientResponse from "effect/http/HttpClientResponse";
-import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 import { describe, expect, it } from "vite-plus/test";
 
-import * as ServerConfig from "../config.ts";
-import * as DirectEndpoints from "./DirectEndpoints.ts";
 import { resolveBoundEndpoints } from "./DirectEndpoints.ts";
 
 const INTERFACES: ReturnType<typeof NodeOS.networkInterfaces> = {
@@ -54,16 +43,6 @@ const INTERFACES: ReturnType<typeof NodeOS.networkInterfaces> = {
       cidr: "203.0.113.20/24",
     },
   ],
-  utun4: [
-    {
-      address: "100.101.102.103",
-      netmask: "255.255.255.255",
-      family: "IPv4",
-      mac: "00:00:00:00:00:00",
-      internal: false,
-      cidr: "100.101.102.103/32",
-    },
-  ],
 };
 
 const virtualInterface = (address: string) => [
@@ -87,10 +66,9 @@ describe("resolveBoundEndpoints", () => {
     ).toEqual([]);
   });
 
-  it("lists every external IPv4 address for a wildcard bind, tagging the tailnet one", () => {
+  it("lists every external IPv4 address for a wildcard bind", () => {
     expect(resolveBoundEndpoints({ host: "0.0.0.0", port: 3773, interfaces: INTERFACES })).toEqual([
       { kind: "lan", httpBaseUrl: "http://192.168.1.10:3773/" },
-      { kind: "tailnet", httpBaseUrl: "http://100.101.102.103:3773/" },
     ]);
   });
 
@@ -106,15 +84,14 @@ describe("resolveBoundEndpoints", () => {
     };
     expect(resolveBoundEndpoints({ host: "0.0.0.0", port: 3773, interfaces })).toEqual([
       { kind: "lan", httpBaseUrl: "http://192.168.1.10:3773/" },
-      { kind: "tailnet", httpBaseUrl: "http://100.101.102.103:3773/" },
       { kind: "lan", httpBaseUrl: "http://192.168.1.20:3773/" },
     ]);
   });
 
   it("lists only the bound address for a specific bind", () => {
     expect(
-      resolveBoundEndpoints({ host: "100.101.102.103", port: 3773, interfaces: INTERFACES }),
-    ).toEqual([{ kind: "tailnet", httpBaseUrl: "http://100.101.102.103:3773/" }]);
+      resolveBoundEndpoints({ host: "192.168.1.10", port: 3773, interfaces: INTERFACES }),
+    ).toEqual([{ kind: "lan", httpBaseUrl: "http://192.168.1.10:3773/" }]);
   });
 
   it("never reports a host name, which can resolve to another machine per client", () => {
@@ -128,80 +105,4 @@ describe("resolveBoundEndpoints", () => {
       resolveBoundEndpoints({ host: "203.0.113.20", port: 3773, interfaces: INTERFACES }),
     ).toEqual([]);
   });
-});
-
-const TAILSCALE_STATUS_JSON = JSON.stringify({
-  Self: { DNSName: "bb-1.tail1234.ts.net.", TailscaleIPs: ["100.64.1.2"] },
-});
-
-/** `tailscale status --json` reporting a MagicDNS name. */
-const layerTailscaleUp = Layer.succeed(
-  ChildProcessSpawner.ChildProcessSpawner,
-  ChildProcessSpawner.make(() =>
-    Effect.succeed(
-      ChildProcessSpawner.makeHandle({
-        pid: ChildProcessSpawner.ProcessId(1),
-        exitCode: Effect.succeed(ChildProcessSpawner.ExitCode(0)),
-        isRunning: Effect.succeed(false),
-        kill: () => Effect.void,
-        unref: Effect.succeed(Effect.void),
-        stdin: Sink.drain,
-        stdout: Stream.make(new TextEncoder().encode(TAILSCALE_STATUS_JSON)),
-        stderr: Stream.empty,
-        all: Stream.empty,
-        getInputFd: () => Sink.drain,
-        getOutputFd: () => Stream.empty,
-      }),
-    ),
-  ),
-);
-
-/** Answers the Serve probe with `status`. */
-const layerServeProbe = (status: number) =>
-  Layer.succeed(
-    HttpClient.HttpClient,
-    HttpClient.make((request) =>
-      Effect.succeed(HttpClientResponse.fromWeb(request, new Response(null, { status }))),
-    ),
-  );
-
-/** A loopback-only server with Tailscale Serve on, so only the Serve name can be listed. */
-const layerServeConfig = Layer.effect(
-  ServerConfig.ServerConfig,
-  Effect.map(ServerConfig.ServerConfig, (config) => ({
-    ...config,
-    host: "127.0.0.1",
-    tailscaleServeEnabled: true,
-    tailscaleServePort: 443,
-  })),
-).pipe(
-  Layer.provide(ServerConfig.layerTest(process.cwd(), { prefix: "t3-direct-" })),
-  Layer.provide(NodeServices.layer),
-);
-
-const resolveWithServe = (probeStatus: number) =>
-  Effect.flatMap(DirectEndpoints.DirectEndpoints, (service) => service.resolve()).pipe(
-    Effect.provide(
-      DirectEndpoints.layer.pipe(
-        Layer.provide(
-          Layer.mergeAll(layerServeConfig, layerTailscaleUp, layerServeProbe(probeStatus)),
-        ),
-      ),
-    ),
-  );
-
-describe("DirectEndpoints Tailscale Serve", () => {
-  effectIt.effect("lists the tailnet name once Serve answers for this server", () =>
-    Effect.gen(function* () {
-      expect(yield* resolveWithServe(200)).toEqual([
-        { kind: "tailnet", httpBaseUrl: "https://bb-1.tail1234.ts.net/" },
-      ]);
-    }),
-  );
-
-  effectIt.effect("leaves the tailnet name out when Serve is not forwarding", () =>
-    Effect.gen(function* () {
-      expect(yield* resolveWithServe(502)).toEqual([]);
-    }),
-  );
 });

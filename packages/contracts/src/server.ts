@@ -632,7 +632,7 @@ export function environmentThemeFileHasColors(file: EnvironmentThemeFile): boole
   );
 }
 
-export const ServerDirectEndpointKind = Schema.Literals(["lan", "tailnet"]);
+export const ServerDirectEndpointKind = Schema.Literals(["lan"]);
 export type ServerDirectEndpointKind = typeof ServerDirectEndpointKind.Type;
 
 export const ServerDirectEndpoint = Schema.Struct({
@@ -659,7 +659,7 @@ export const ServerConfig = Schema.Struct({
    */
   remoteOpenTargets: Schema.optionalKey(ForwardCompatibleArray(RemoteOpenTarget)),
   /**
-   * Direct addresses this server listens on right now (LAN and tailnet), so a
+   * Direct addresses this server listens on right now (LAN), so a
    * client connected one way can learn the others. Hints only: the client
    * checks each address answers as this environment before using it. Absent on
    * servers that predate the feature; empty when bound to loopback only.

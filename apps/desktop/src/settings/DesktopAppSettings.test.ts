@@ -3,7 +3,6 @@ import { assert, describe, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
-import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 
 import * as DesktopConfig from "../app/DesktopConfig.ts";
@@ -26,8 +25,6 @@ const DesktopSettingsPatch = Schema.Struct({
   ),
   mainWindowMaximized: Schema.optionalKey(Schema.Boolean),
   serverExposureMode: Schema.optionalKey(Schema.Literals(["local-only", "network-accessible"])),
-  tailscaleServeEnabled: Schema.optionalKey(Schema.Boolean),
-  tailscaleServePort: Schema.optionalKey(Schema.Number),
   updateChannel: Schema.optionalKey(Schema.Literals(["latest", "nightly"])),
   updateChannelConfiguredByUser: Schema.optionalKey(Schema.Boolean),
   wslBackendEnabled: Schema.optionalKey(Schema.Boolean),
@@ -128,8 +125,6 @@ describe("DesktopSettings", () => {
         mainWindowBounds: null,
         mainWindowMaximized: false,
         serverExposureMode: "local-only",
-        tailscaleServeEnabled: false,
-        tailscaleServePort: 443,
         updateChannel: "nightly",
         updateChannelConfiguredByUser: false,
         wslBackendEnabled: false,
@@ -146,8 +141,6 @@ describe("DesktopSettings", () => {
         yield* writeSettingsPatch({
           linuxPasswordStore: "gnome-libsecret",
           serverExposureMode: "network-accessible",
-          tailscaleServeEnabled: true,
-          tailscaleServePort: 8443,
           updateChannel: "latest",
           updateChannelConfiguredByUser: true,
         });
@@ -158,8 +151,6 @@ describe("DesktopSettings", () => {
           mainWindowBounds: null,
           mainWindowMaximized: false,
           serverExposureMode: "network-accessible",
-          tailscaleServeEnabled: true,
-          tailscaleServePort: 8443,
           updateChannel: "latest",
           updateChannelConfiguredByUser: true,
           wslBackendEnabled: false,
@@ -170,13 +161,6 @@ describe("DesktopSettings", () => {
         const exposure = yield* settings.setServerExposureMode("local-only");
         assert.isTrue(exposure.changed);
         assert.equal(exposure.settings.serverExposureMode, "local-only");
-
-        const tailscale = yield* settings.setTailscaleServe({
-          enabled: true,
-          port: Option.some(9443),
-        });
-        assert.isTrue(tailscale.changed);
-        assert.equal(tailscale.settings.tailscaleServePort, 9443);
 
         const updateChannel = yield* settings.setUpdateChannel("nightly");
         assert.isTrue(updateChannel.changed);
@@ -215,12 +199,6 @@ describe("DesktopSettings", () => {
         const exposure = yield* settings.setServerExposureMode("local-only");
         assert.isFalse(exposure.changed);
 
-        const tailscale = yield* settings.setTailscaleServe({
-          enabled: false,
-          port: Option.none(),
-        });
-        assert.isFalse(tailscale.changed);
-
         const updateChannel = yield* settings.setUpdateChannel("latest");
         assert.isFalse(updateChannel.changed);
         assert.equal(updateChannel.settings.updateChannelConfiguredByUser, false);
@@ -254,8 +232,6 @@ describe("DesktopSettings", () => {
           `{
             // JSONC-style comments and trailing commas match server settings parsing.
             "serverExposureMode": "network-accessible",
-            "tailscaleServeEnabled": true,
-            "tailscaleServePort": 8443,
             "mainWindowBounds": { "x": 120, "y": 80, "width": 1280, "height": 900 },
           }\n`,
         );
@@ -266,8 +242,6 @@ describe("DesktopSettings", () => {
           mainWindowBounds: { x: 120, y: 80, width: 1280, height: 900 },
           mainWindowMaximized: false,
           serverExposureMode: "network-accessible",
-          tailscaleServeEnabled: true,
-          tailscaleServePort: 8443,
           updateChannel: "latest",
           updateChannelConfiguredByUser: false,
           wslBackendEnabled: false,
@@ -310,8 +284,6 @@ describe("DesktopSettings", () => {
             `{
             "linuxPasswordStore": "unsupported-store",
             "serverExposureMode": "network-accessible",
-            "tailscaleServeEnabled": true,
-            "tailscaleServePort": 8443,
             "updateChannel": "nightly",
             "updateChannelConfiguredByUser": true
           }\n`,
@@ -323,8 +295,6 @@ describe("DesktopSettings", () => {
             mainWindowBounds: null,
             mainWindowMaximized: false,
             serverExposureMode: "network-accessible",
-            tailscaleServeEnabled: true,
-            tailscaleServePort: 8443,
             updateChannel: "nightly",
             updateChannelConfiguredByUser: true,
             wslBackendEnabled: false,
@@ -400,8 +370,6 @@ describe("DesktopSettings", () => {
           mainWindowBounds: null,
           mainWindowMaximized: false,
           serverExposureMode: "local-only",
-          tailscaleServeEnabled: false,
-          tailscaleServePort: 443,
           updateChannel: "nightly",
           updateChannelConfiguredByUser: false,
           wslBackendEnabled: false,
@@ -429,8 +397,6 @@ describe("DesktopSettings", () => {
           mainWindowBounds: null,
           mainWindowMaximized: false,
           serverExposureMode: "local-only",
-          tailscaleServeEnabled: false,
-          tailscaleServePort: 443,
           updateChannel: "latest",
           updateChannelConfiguredByUser: true,
           wslBackendEnabled: false,
@@ -439,33 +405,6 @@ describe("DesktopSettings", () => {
         } satisfies DesktopAppSettings.DesktopSettings);
       }),
       { appVersion: "0.0.17-nightly.20260415.1" },
-    ),
-  );
-
-  it.effect("normalizes invalid persisted Tailscale Serve ports", () =>
-    withSettings(
-      Effect.gen(function* () {
-        const settings = yield* DesktopAppSettings.DesktopAppSettings;
-        yield* writeSettingsPatch({
-          tailscaleServeEnabled: true,
-          tailscaleServePort: 0,
-        });
-
-        assert.deepEqual(yield* settings.load, {
-          linuxPasswordStore: "auto",
-          localEnvironmentEnabled: true,
-          mainWindowBounds: null,
-          mainWindowMaximized: false,
-          serverExposureMode: "local-only",
-          tailscaleServeEnabled: true,
-          tailscaleServePort: 443,
-          updateChannel: "latest",
-          updateChannelConfiguredByUser: false,
-          wslBackendEnabled: false,
-          wslOnly: false,
-          wslDistro: null,
-        } satisfies DesktopAppSettings.DesktopSettings);
-      }),
     ),
   );
 

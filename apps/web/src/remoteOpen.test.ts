@@ -1,7 +1,6 @@
 import {
   BearerConnectionTarget,
   PrimaryConnectionTarget,
-  RelayConnectionTarget,
   SshConnectionTarget,
 } from "@t3tools/client-runtime/connection";
 import { buildRemoteOpenUrl, EnvironmentId } from "@t3tools/contracts";
@@ -19,10 +18,7 @@ const primaryTarget = (httpBaseUrl: string) =>
     wsBaseUrl: httpBaseUrl.replace("http", "ws"),
   });
 
-const TAILSCALE_TARGETS = [
-  { kind: "tailscale", host: "sol.tail1234.ts.net" },
-  { kind: "mdns", host: "sol.local" },
-] as const;
+const MDNS_TARGETS = [{ kind: "mdns", host: "sol.local" }] as const;
 
 describe("resolveRemoteOpenState", () => {
   it("keeps exec behavior for a loopback primary target", () => {
@@ -31,7 +27,7 @@ describe("resolveRemoteOpenState", () => {
         target: primaryTarget("http://127.0.0.1:8000"),
         sshAlias: null,
         isDesktopRenderer: false,
-        remoteOpenTargets: TAILSCALE_TARGETS,
+        remoteOpenTargets: MDNS_TARGETS,
       }),
     ).toEqual({ mode: "local-exec" });
   });
@@ -39,14 +35,14 @@ describe("resolveRemoteOpenState", () => {
   it("uses deep links for a primary target reached over the network", () => {
     expect(
       resolveRemoteOpenState({
-        target: primaryTarget("https://sol.tail1234.ts.net"),
+        target: primaryTarget("https://sol.example.com"),
         sshAlias: null,
         isDesktopRenderer: false,
-        remoteOpenTargets: TAILSCALE_TARGETS,
+        remoteOpenTargets: MDNS_TARGETS,
       }),
     ).toEqual({
       mode: "remote-links",
-      host: { kind: "tailscale", host: "sol.tail1234.ts.net" },
+      host: { kind: "mdns", host: "sol.local" },
     });
   });
 
@@ -58,7 +54,7 @@ describe("resolveRemoteOpenState", () => {
         target: primaryTarget("http://172.29.112.1:14369"),
         sshAlias: null,
         isDesktopRenderer: true,
-        remoteOpenTargets: TAILSCALE_TARGETS,
+        remoteOpenTargets: MDNS_TARGETS,
       }),
     ).toEqual({ mode: "local-exec" });
   });
@@ -73,7 +69,7 @@ describe("resolveRemoteOpenState", () => {
         }),
         sshAlias: null,
         isDesktopRenderer: false,
-        remoteOpenTargets: TAILSCALE_TARGETS,
+        remoteOpenTargets: MDNS_TARGETS,
       }),
     ).toEqual({ mode: "local-exec" });
   });
@@ -88,7 +84,7 @@ describe("resolveRemoteOpenState", () => {
         }),
         sshAlias: "sol",
         isDesktopRenderer: true,
-        remoteOpenTargets: TAILSCALE_TARGETS,
+        remoteOpenTargets: MDNS_TARGETS,
       }),
     ).toEqual({ mode: "remote-links", host: { kind: "ssh-alias", host: "sol" } });
   });
@@ -97,7 +93,7 @@ describe("resolveRemoteOpenState", () => {
     for (const remoteOpenTargets of [[], undefined] as const) {
       expect(
         resolveRemoteOpenState({
-          target: new RelayConnectionTarget({ environmentId, label: "sol" }),
+          target: new BearerConnectionTarget({ environmentId, label: "sol", connectionId: "sol" }),
           sshAlias: null,
           isDesktopRenderer: false,
           remoteOpenTargets,
@@ -123,10 +119,10 @@ describe("buildRemoteOpenUrl", () => {
     expect(
       buildRemoteOpenUrl({
         editor: "vscode",
-        host: "sol.tail1234.ts.net",
+        host: "sol.example.com",
         absolutePath: "/home/theo/code/my repo",
       }),
-    ).toBe("vscode://vscode-remote/ssh-remote+sol.tail1234.ts.net/home/theo/code/my%20repo");
+    ).toBe("vscode://vscode-remote/ssh-remote+sol.example.com/home/theo/code/my%20repo");
   });
 
   it("uses the fork's scheme", () => {
@@ -145,10 +141,10 @@ describe("buildRemoteOpenUrl", () => {
     expect(
       buildRemoteOpenUrl({
         editor: "zed",
-        host: "sol.tail1234.ts.net",
+        host: "sol.example.com",
         absolutePath: "/home/theo/code/my repo",
       }),
-    ).toBe("zed://ssh/sol.tail1234.ts.net/home/theo/code/my%20repo");
+    ).toBe("zed://ssh/sol.example.com/home/theo/code/my%20repo");
   });
 
   it("drops the Windows drive letter for Zed", () => {
@@ -164,11 +160,11 @@ describe("buildRemoteOpenUrl", () => {
     expect(
       buildRemoteOpenUrl({
         editor: "pycharm",
-        host: "sol.tail1234.ts.net",
+        host: "sol.example.com",
         absolutePath: "/home/theo/code/my repo",
       }),
     ).toBe(
-      "jetbrains://gateway/ssh/environment?h=sol.tail1234.ts.net&launchIde=true&ideHint=PY&projectHint=%2Fhome%2Ftheo%2Fcode%2Fmy+repo",
+      "jetbrains://gateway/ssh/environment?h=sol.example.com&launchIde=true&ideHint=PY&projectHint=%2Fhome%2Ftheo%2Fcode%2Fmy+repo",
     );
     expect(
       buildRemoteOpenUrl({ editor: "idea", host: "sol", absolutePath: "C:\\Users\\theo" }),

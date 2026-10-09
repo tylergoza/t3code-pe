@@ -1,8 +1,8 @@
 # Remote architecture
 
 Each connection joins a client to one environment over HTTP and WebSocket. The
-environment owns providers, execution, files, and durable state. Direct access,
-Tailscale, SSH, and T3 Connect change how the client reaches that server; they do
+environment owns providers, execution, files, and durable state. Direct access
+and SSH change how the client reaches that server; they do
 not introduce another execution model. See
 [remote access](../user/remote-access.md) for setup.
 
@@ -34,7 +34,7 @@ the first that works. Each direct route is first checked with the public
 descriptor, so a saved LAN address that a different machine answers on another
 network receives no credential. That check is not proof of a working route:
 when every route stays silent, each is still tried. A route that fails to
-connect, including a blocked one such as a signed-out T3 Connect, moves on to
+connect, including a blocked one, moves on to
 the next; only an incompatible server stops the walk, because it is the same
 server on every route. While connected over a later route the
 [supervisor](../../packages/client-runtime/src/connection/supervisor.ts)
@@ -43,11 +43,9 @@ Preflight includes authorization so a route that answers but rejects this
 client never costs a working session; a route that still fails afterwards is
 held back for a cooldown so a flaky network cannot bounce the connection.
 
-A connected server reports the LAN and tailnet addresses it is bound to, and the
+A connected server reports the LAN addresses it is bound to, and the
 client saves them as learned routes. A learned route reuses the credential of
-the route it was learned over: the T3 Connect access token, which is not bound
-to an origin because each DPoP proof names the URL it signs, or the paired
-bearer token. Learned routes the server stops reporting are dropped, which is
+the route it was learned over: the paired bearer token. Learned routes the server stops reporting are dropped, which is
 how a changed LAN address replaces the old one; routes the user saved are never
 touched. The reported addresses are hints like any advertised endpoint, so a
 learned route still has to answer as this environment before it is used.
@@ -70,10 +68,9 @@ parameter would disclose it to the wrong origin.
 
 ## Access and process ownership are different
 
-Tailscale supplies an endpoint for ordinary pairing, so it needs no separate
+A direct address supplies an endpoint for ordinary pairing, so it needs no separate
 environment type. Authentication remains the environment's responsibility for
-every route. See [environment authentication](./environment-auth.md) and the
-[T3 Connect trust boundary](./t3-connect.md).
+every route. See [environment authentication](./environment-auth.md).
 
 SSH can launch a server as well as forward a port. Desktop main owns that
 lifecycle because it can spawn SSH and handle authentication prompts. The
@@ -96,7 +93,7 @@ Desktop normally launches its own primary server, but the desktop setting `local
 no local state is deleted. On the next start the main process skips port selection, server exposure,
 and the primary and WSL backends, and opens the window right away. The renderer sees this through
 `desktopBridge.getLocalEnvironmentEnabled()`: `readPrimaryEnvironmentTarget` returns null, so primary
-auth and platform-managed discovery are skipped and only saved environments (pairing, relay, SSH)
+auth and platform-managed discovery are skipped and only saved environments (pairing, SSH)
 connect. This is possible because the desktop renderer is not served by the backend: the `t3code://`
 scheme serves the bundled client from disk (Vite in development) and API traffic always goes to the
 environment's own URL.

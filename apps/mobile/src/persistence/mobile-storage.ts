@@ -6,16 +6,11 @@ import { pipe } from "effect/Function";
 import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 
-import {
-  isRelayManagedConnection,
-  type SavedRemoteConnection,
-  toStableSavedRemoteConnection,
-} from "../lib/connection";
+import { type SavedRemoteConnection } from "../lib/connection";
 import * as MobileSecureStorage from "./mobile-secure-storage";
 
 const CONNECTIONS_KEY = "t3code.connections";
 const AGENT_AWARENESS_DEVICE_ID_KEY = "t3code.agent-awareness.device-id";
-const AGENT_AWARENESS_REGISTRATION_KEY = "t3code.agent-awareness.registration";
 const RECENT_THREAD_SHORTCUTS_KEY = "t3code.recent-thread-shortcuts";
 
 export class MobileStorageDecodeError extends Schema.TaggedError<MobileStorageDecodeError>()(
@@ -51,12 +46,6 @@ export class MobileDeviceIdGenerationError extends Schema.TaggedError<MobileDevi
   }
 }
 
-export interface AgentAwarenessRegistrationRecord {
-  readonly identity: string;
-  readonly signature: string;
-  readonly pushToStartToken?: string;
-}
-
 export interface RecentThreadShortcut {
   readonly environmentId: string;
   readonly threadId: string;
@@ -85,24 +74,6 @@ export class MobileStorage extends Context.Service<
     readonly loadOrCreateAgentAwarenessDeviceId: Effect.Effect<
       string,
       MobileSecureStorage.MobileSecureStorageError | MobileDeviceIdGenerationError
-    >;
-    readonly loadAgentAwarenessDeviceId: Effect.Effect<
-      string | null,
-      MobileSecureStorage.MobileSecureStorageError
-    >;
-    readonly loadAgentAwarenessRegistrationRecord: Effect.Effect<
-      AgentAwarenessRegistrationRecord | null,
-      MobileSecureStorage.MobileSecureStorageError
-    >;
-    readonly saveAgentAwarenessRegistrationRecord: (
-      record: AgentAwarenessRegistrationRecord,
-    ) => Effect.Effect<
-      void,
-      MobileSecureStorage.MobileSecureStorageError | MobileStorageEncodeError
-    >;
-    readonly clearAgentAwarenessRegistrationRecord: Effect.Effect<
-      void,
-      MobileSecureStorage.MobileSecureStorageError
     >;
     readonly loadRecentThreadShortcuts: Effect.Effect<
       ReadonlyArray<RecentThreadShortcut>,
@@ -152,11 +123,7 @@ export const make = Effect.fn("MobileStorage.make")(function* () {
     Effect.map((parsed) =>
       pipe(
         parsed?.connections ?? [],
-        Arr.filter(
-          (connection) =>
-            !!connection.environmentId &&
-            (!!connection.bearerToken?.trim() || isRelayManagedConnection(connection)),
-        ),
+        Arr.filter((connection) => !!connection.environmentId && !!connection.bearerToken?.trim()),
       ),
     ),
   );
@@ -165,15 +132,14 @@ export const make = Effect.fn("MobileStorage.make")(function* () {
     connection: SavedRemoteConnection,
   ) {
     const current = yield* loadSavedConnections;
-    const stableConnection = toStableSavedRemoteConnection(connection);
     const next = current.some((entry) => entry.environmentId === connection.environmentId)
       ? pipe(
           current,
           Arr.map((entry) =>
-            entry.environmentId === connection.environmentId ? stableConnection : entry,
+            entry.environmentId === connection.environmentId ? connection : entry,
           ),
         )
-      : pipe(current, Arr.append(stableConnection));
+      : pipe(current, Arr.append(connection));
     yield* writeJson(CONNECTIONS_KEY, { connections: next });
   });
 
@@ -198,32 +164,6 @@ export const make = Effect.fn("MobileStorage.make")(function* () {
     yield* secureStorage.setItem(AGENT_AWARENESS_DEVICE_ID_KEY, deviceId);
     return deviceId;
   });
-
-  const loadAgentAwarenessDeviceId = secureStorage
-    .getItem(AGENT_AWARENESS_DEVICE_ID_KEY)
-    .pipe(Effect.map((existing) => (existing?.trim() ? existing : null)));
-
-  const loadAgentAwarenessRegistrationRecord = readJson<AgentAwarenessRegistrationRecord>(
-    AGENT_AWARENESS_REGISTRATION_KEY,
-  ).pipe(
-    Effect.map((parsed) => {
-      if (
-        !parsed ||
-        typeof parsed !== "object" ||
-        typeof parsed.identity !== "string" ||
-        typeof parsed.signature !== "string"
-      ) {
-        return null;
-      }
-      return {
-        identity: parsed.identity,
-        signature: parsed.signature,
-        ...(typeof parsed.pushToStartToken === "string" && parsed.pushToStartToken
-          ? { pushToStartToken: parsed.pushToStartToken }
-          : {}),
-      };
-    }),
-  );
 
   // Threads most recently opened on this device, newest first — the source
   // for the launcher's dynamic "recent thread" app shortcuts.
@@ -250,14 +190,6 @@ export const make = Effect.fn("MobileStorage.make")(function* () {
     saveConnection,
     clearSavedConnection,
     loadOrCreateAgentAwarenessDeviceId,
-    loadAgentAwarenessDeviceId,
-    loadAgentAwarenessRegistrationRecord,
-    saveAgentAwarenessRegistrationRecord: (record) =>
-      writeJson(AGENT_AWARENESS_REGISTRATION_KEY, record),
-    clearAgentAwarenessRegistrationRecord: secureStorage.setItem(
-      AGENT_AWARENESS_REGISTRATION_KEY,
-      "",
-    ),
     loadRecentThreadShortcuts,
     saveRecentThreadShortcuts: (threads) => writeJson(RECENT_THREAD_SHORTCUTS_KEY, { threads }),
   });

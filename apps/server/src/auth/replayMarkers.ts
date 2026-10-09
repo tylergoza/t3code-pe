@@ -7,16 +7,15 @@ import * as Option from "effect/Option";
 import * as Path from "effect/Path";
 import * as Schedule from "effect/Schedule";
 
-import { CLOUD_REPLAY_MARKER_PREFIXES } from "../cloud/CloudLink.ts";
 import * as ServerConfig from "../config.ts";
 import { forkParked } from "../serverActivation.ts";
 import { DPOP_REPLAY_MARKER_PREFIX } from "./dpop.ts";
 
-const REPLAY_MARKER_PREFIXES = [DPOP_REPLAY_MARKER_PREFIX, ...CLOUD_REPLAY_MARKER_PREFIXES];
+const REPLAY_MARKER_PREFIXES = [DPOP_REPLAY_MARKER_PREFIX];
 
 /**
  * How long a replay marker stays on disk. A marker only matters while its proof
- * can pass the time check (about 5 minutes for DPoP, 7 for cloud proofs). After
+ * can pass the time check (about 5 minutes for DPoP). After
  * that, the time check rejects a replay by itself. The sweep and the time check
  * both use the wall clock, so a pruned marker can let a replay through only if
  * the clock moves back by almost a day, or if the filesystem stamps mtimes almost

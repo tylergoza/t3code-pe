@@ -61,7 +61,7 @@ const makeLayerRoutes = (capture: (auth: EnvironmentAuth.EnvironmentAuth["Servic
   );
 
 const encodeJson = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown));
-const ORIGIN = "https://box.example.ts.net";
+const ORIGIN = "https://box.example.com";
 const REDIRECT = "http://localhost/callback";
 const verifier = "a".repeat(43) + "-verifier-for-tests";
 /** base64url(SHA-256(verifier)), the S256 challenge for `verifier`. */
@@ -71,7 +71,7 @@ const challenge = "DeB41nTVkPwpbbYecrnqtVq7VXLezustdHAK4SWt13c";
 const at = (path: string, init?: RequestInit) =>
   new Request(`http://127.0.0.1${path}`, {
     ...init,
-    headers: { host: "box.example.ts.net", "x-forwarded-proto": "https", ...init?.headers },
+    headers: { host: "box.example.com", "x-forwarded-proto": "https", ...init?.headers },
   });
 const form = (body: Record<string, string>) => ({
   method: "POST",
@@ -228,7 +228,7 @@ it.live("registers loopback and https clients and never redirects for an unverif
       expect(details).toEqual({
         clientName: "Claude Code",
         redirectHost: "localhost:51234",
-        environmentHost: "box.example.ts.net",
+        environmentHost: "box.example.com",
       });
 
       // The approval endpoints re-check the request: a forged client gets a message, not a URL.
@@ -429,7 +429,7 @@ it.live(
         const approveWith = (code: string) =>
           decide(handler, params, { _tag: "pairing-code", access: "auto", code });
 
-        // A T3 Connect code is bound to a device key: refused, and still usable by its device.
+        // A code bound to a device key: refused, and still usable by its device.
         const bound = yield* auth.createPairingLink({
           proofKeyThumbprint: "device-key-thumbprint",
         });

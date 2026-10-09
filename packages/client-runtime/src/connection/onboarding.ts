@@ -93,7 +93,7 @@ const resolvePairingTarget = Effect.fn("clientRuntime.connection.onboarding.reso
 );
 
 /**
- * One bearer route per address, so pairing over Tailscale adds a route next
+ * One bearer route per address, so pairing over a second address adds a route next
  * to the LAN one instead of replacing it. Pairing the same address again
  * reuses the id and replaces that route.
  */

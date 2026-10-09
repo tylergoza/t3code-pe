@@ -17,8 +17,6 @@ export const DesktopBackendBootstrap = Schema.Struct({
   // `desktopBootstrapToken` for its whole run. See
   // `@t3tools/shared/desktopBootstrapToken`.
   desktopBootstrapSecret: Schema.optionalKey(Schema.String),
-  tailscaleServeEnabled: Schema.Boolean,
-  tailscaleServePort: PortSchema,
   otlpTracesUrl: Schema.optional(Schema.String),
   otlpMetricsUrl: Schema.optional(Schema.String),
   otlpLogsUrl: Schema.optional(Schema.String),

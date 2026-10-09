@@ -2,8 +2,6 @@ import {
   BearerConnectionCredential,
   BearerConnectionProfile,
   BearerConnectionRegistration,
-  RelayConnectionRegistration,
-  RelayConnectionTarget,
   BearerConnectionTarget,
 } from "@t3tools/client-runtime/connection";
 import {
@@ -40,26 +38,11 @@ export class LegacyConnectionMigrationError extends Schema.TaggedError<LegacyCon
   },
 ) {}
 
-function isRelayManaged(connection: typeof LegacySavedRemoteConnection.Type): boolean {
-  return connection.relayManaged === true || connection.authenticationMethod === "dpop";
-}
-
 function migrateConnection(
   document: ConnectionCatalogDocument,
   connection: typeof LegacySavedRemoteConnection.Type,
 ): ConnectionCatalogDocument {
-  if (isRelayManaged(connection)) {
-    return registerConnectionInCatalog(
-      document,
-      new RelayConnectionRegistration({
-        target: new RelayConnectionTarget({
-          environmentId: connection.environmentId,
-          label: connection.environmentLabel,
-        }),
-      }),
-    );
-  }
-
+  // Legacy tunnel-managed connections carried no bearer token and are dropped.
   if (connection.bearerToken === null || connection.bearerToken.trim() === "") {
     return document;
   }

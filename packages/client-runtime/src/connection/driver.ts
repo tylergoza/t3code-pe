@@ -33,8 +33,8 @@ export interface EnvironmentConnectionLease {
 }
 
 /**
- * The result of an unauthenticated reachability check. T3 Connect and SSH
- * routes have no cheap check, so they are "unchecked".
+ * The result of an unauthenticated reachability check. SSH routes have no
+ * cheap check, so they are "unchecked".
  */
 export type RouteCheck = "answered" | "silent" | "unchecked";
 
@@ -68,11 +68,11 @@ export class ConnectionDriver extends Context.Service<
 /**
  * Connects over the first route, in preference order, that is worth trying.
  * Every route is checked at once, but a route only waits for its own check,
- * so a reachable LAN address connects without waiting on a silent tailnet
+ * so a reachable LAN address connects without waiting on a silent remote
  * one. A silent route is skipped on the first pass so a LAN address from
  * another network costs one short check, not a connection timeout. A route
- * that fails to connect moves on to the next: a signed-out T3 Connect must
- * not hide a working LAN. Silent routes are tried last, since a check is not
+ * that fails to connect moves on to the next: a blocked route must not hide
+ * a working LAN. Silent routes are tried last, since a check is not
  * proof.
  *
  * The reported error is a transient one when any route failed transiently,

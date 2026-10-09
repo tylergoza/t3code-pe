@@ -2,6 +2,7 @@ import {
   type ClaudeSettings,
   type ModelCapabilities,
   type ServerProvider,
+  type ServerProviderModel,
   type ServerProviderSlashCommand,
   type ServerProviderResetCredits,
 } from "@t3tools/contracts";
@@ -17,6 +18,7 @@ import { createModelCapabilities } from "@t3tools/shared/model";
 import { resolveSpawnCommand } from "@t3tools/shared/shell";
 import {
   query as claudeQuery,
+  type ModelInfo as ClaudeModelInfo,
   type Options as ClaudeQueryOptions,
   type SlashCommand as ClaudeSlashCommand,
   type SDKControlGetUsageResponse,
@@ -25,6 +27,7 @@ import {
 } from "@anthropic-ai/claude-agent-sdk";
 
 import {
+  buildSelectOptionDescriptor,
   buildServerProvider,
   COMPACT_SLASH_COMMAND,
   DEFAULT_TIMEOUT_MS,
@@ -239,6 +242,8 @@ type ClaudeCapabilitiesProbe = {
    */
   readonly apiProvider: string | undefined;
   readonly slashCommands: ReadonlyArray<ServerProviderSlashCommand>;
+  /** Models the installed Claude Code reports in its initialization result. */
+  readonly reportedModels?: ReadonlyArray<ClaudeModelInfo>;
   /**
    * Subscription windows from the SDK's `get_usage` control request, or
    * `undefined` when the request itself failed. Absent windows on an
@@ -246,6 +251,55 @@ type ClaudeCapabilitiesProbe = {
    */
   readonly usage?: Pick<SDKControlGetUsageResponse, "rate_limits_available" | "rate_limits">;
 };
+
+const CLAUDE_EFFORT_LABELS: Record<string, string> = {
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+  xhigh: "Extra High",
+  max: "Max",
+};
+
+/**
+ * Appends models the local Claude Code reports that the manifest does not
+ * know, so new models appear without a manifest update. Known slugs and
+ * aliases win; suffixed variants such as `[1m]` stay manifest-driven.
+ */
+export function mergeClaudeReportedModels(
+  models: ReadonlyArray<ServerProviderModel>,
+  reported: ReadonlyArray<ClaudeModelInfo>,
+): ReadonlyArray<ServerProviderModel> {
+  const known = new Set(models.flatMap((model) => [model.slug, ...(model.aliases ?? [])]));
+  const added: Array<ServerProviderModel> = [];
+  for (const entry of reported) {
+    const slug = nonEmptyProbeString(entry.resolvedModel ?? entry.value);
+    if (!slug || slug === "default" || slug.includes("[")) continue;
+    if (known.has(slug) || known.has(entry.value)) continue;
+    known.add(slug);
+    const effortLevels = entry.supportedEffortLevels ?? [];
+    added.push({
+      slug,
+      name: nonEmptyProbeString(entry.displayName) ?? slug,
+      isCustom: false,
+      capabilities:
+        effortLevels.length > 0
+          ? createModelCapabilities({
+              optionDescriptors: [
+                buildSelectOptionDescriptor({
+                  id: "effort",
+                  label: "Reasoning",
+                  options: effortLevels.map((level) => ({
+                    value: level,
+                    label: CLAUDE_EFFORT_LABELS[level] ?? level,
+                  })),
+                }),
+              ],
+            })
+          : DEFAULT_CLAUDE_MODEL_CAPABILITIES,
+    });
+  }
+  return added.length === 0 ? models : [...models, ...added];
+}
 
 function parseClaudeInitializationCommands(
   commands: ReadonlyArray<ClaudeSlashCommand> | undefined,
@@ -396,6 +450,7 @@ const probeClaudeCapabilities = (
           tokenSource: account?.tokenSource,
           apiProvider: account?.apiProvider,
           slashCommands: parseClaudeInitializationCommands(init.commands),
+          reportedModels: init.models ?? [],
           ...(usage ? { usage } : {}),
         } satisfies ClaudeCapabilitiesProbe;
       }),
@@ -590,6 +645,7 @@ export const checkClaudeProviderStatus = Effect.fn("checkClaudeProviderStatus")(
     });
   }
 
+  const reportedModels = mergeClaudeReportedModels(models, capabilities.reportedModels ?? []);
   const authMetadata =
     claudeAuthMetadata({
       subscriptionType: capabilities.subscriptionType,
@@ -614,7 +670,7 @@ export const checkClaudeProviderStatus = Effect.fn("checkClaudeProviderStatus")(
     presentation: CLAUDE_PRESENTATION,
     enabled: claudeSettings.enabled,
     checkedAt,
-    models,
+    models: reportedModels,
     updateRequiredModels,
     slashCommands: dedupedSlashCommands,
     skills,

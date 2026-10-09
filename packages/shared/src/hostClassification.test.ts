@@ -35,7 +35,7 @@ describe("isPublicFaviconHost", () => {
     }
   });
 
-  it("detects the Tailscale 100.64.0.0/10 range", () => {
+  it("detects the carrier-grade NAT 100.64.0.0/10 range", () => {
     for (const host of ["100.64.0.1", "100.100.100.100", "100.126.17.15", "100.127.255.255"]) {
       expect(isPublicFaviconHost(host), host).toBe(false);
     }
@@ -51,8 +51,6 @@ describe("isPublicFaviconHost", () => {
       "api.internal",
       "router.home.arpa",
       "home.arpa",
-      "box.tailnet.ts.net",
-      "AIR.TAILE8BEA7.TS.NET",
     ]) {
       expect(isPublicFaviconHost(host), host).toBe(false);
     }
@@ -82,13 +80,7 @@ describe("isPublicFaviconHost", () => {
   });
 
   it("ignores a trailing DNS root label", () => {
-    for (const host of [
-      "localhost.",
-      "printer.local.",
-      "api.internal.",
-      "box.tailnet.ts.net.",
-      "air.",
-    ]) {
+    for (const host of ["localhost.", "printer.local.", "api.internal.", "air."]) {
       expect(isPublicFaviconHost(host), host).toBe(false);
     }
     expect(isPublicFaviconHost("github.com.")).toBe(true);

@@ -1,12 +1,11 @@
 /**
- * ModelManifest — remote provider-model metadata with a bundled offline
- * fallback.
+ * ModelManifest — provider-model metadata from the bundled
+ * `model-manifest.json`, optionally replaced by a local override file.
  *
  * Provider catalogs and legacy classification live in `model-manifest.json`.
- * The bundled copy ships with every release; at runtime the service refreshes
- * it from the same file on `main`. Preference order is remote, then the last
- * successful on-disk copy, then the bundle. A failed fetch never fails a
- * provider check.
+ * The bundled copy ships with every release. Admins can drop a newer copy at
+ * `<stateDir>/model-manifest.local.json`; it wins when valid and not older
+ * than the bundle. Nothing is fetched remotely.
  *
  * Providers with authoritative discovery can use only the classification
  * overlay. Providers with static catalogs can resolve presentation and
@@ -22,7 +21,6 @@ import {
 } from "@t3tools/contracts";
 import { codexModelFamily } from "@t3tools/shared/model";
 import { compareSemverVersions, parseSemver } from "@t3tools/shared/semver";
-import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -30,28 +28,19 @@ import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
-import * as Semaphore from "effect/Semaphore";
-import { HttpClient, HttpClientResponse } from "effect/http";
 
-import { writeFileStringAtomically } from "../atomicWrite.ts";
 import { ServerConfig } from "../config.ts";
-import * as ServerSettings from "../serverSettings.ts";
 import { hasValidClaudeManifestAdapters } from "./ClaudeModelManifest.ts";
 import bundledManifestJson from "./model-manifest.json" with { type: "json" };
 import { ProviderCompatibilityPolicy } from "./providerCompatibility.ts";
 import type { ServerProviderDraft } from "@t3tools/provider-core/server/snapshotProbe";
 
-const MODEL_MANIFEST_URL =
-  "https://raw.githubusercontent.com/pingdotgg/t3code/main/apps/server/src/provider/model-manifest.json";
-
-/** How long a fetched manifest stays fresh before the next probe re-fetches. */
-const MANIFEST_TTL_MS = 60 * 60 * 1000;
-
-/** Minimum gap between fetch attempts after a failure, so an offline server
- * does not pay a network timeout on every provider check. */
-const MANIFEST_RETRY_MS = 5 * 60 * 1000;
-
-const FETCH_TIMEOUT_MS = 10_000;
+/**
+ * Optional admin-supplied manifest in the server state directory. Same shape
+ * as the bundled `model-manifest.json`. This fork never fetches the manifest
+ * from the network.
+ */
+export const LOCAL_MODEL_MANIFEST_FILE = "model-manifest.local.json";
 
 const ManifestModelStatus = Schema.Literals(["current", "legacy"]);
 
@@ -139,8 +128,6 @@ export interface ResolvedProviderCatalog {
   };
 }
 
-const decodeManifest = Schema.decodeUnknownEffect(ModelManifestSchema);
-
 export const BUNDLED_MODEL_MANIFEST: ModelManifestData =
   Schema.decodeUnknownSync(ModelManifestSchema)(bundledManifestJson);
 
@@ -196,20 +183,10 @@ export function resolveProviderCatalog(
   };
 }
 
-/** On-disk shape of the last successfully fetched manifest. */
-const ManifestCacheFile = Schema.Struct({
-  fetchedAtMs: Schema.Number,
-  manifest: ModelManifestSchema,
-});
-const decodeManifestCache = Schema.decodeUnknownEffect(
+/** JSON-text decoder for the admin-supplied local manifest. */
+const decodeManifestJson = Schema.decodeUnknownEffect(
   Schema.fromJsonString(
-    ManifestCacheFile as unknown as Schema.Codec<typeof ManifestCacheFile.Type>,
-  ),
-);
-/** Exported for tests that seed the disk cache. */
-export const encodeManifestCache = Schema.encodeEffect(
-  Schema.fromJsonString(
-    ManifestCacheFile as unknown as Schema.Codec<typeof ManifestCacheFile.Type>,
+    ModelManifestSchema as unknown as Schema.Codec<typeof ModelManifestSchema.Type>,
   ),
 );
 
@@ -352,16 +329,14 @@ export function classifyModels(
 export class ModelManifest extends Context.Service<
   ModelManifest,
   {
-    /** Manifest already in memory (disk cache or bundle); never fetches.
-     * Snapshot classification reads this, so it never waits on the network. */
+    /** Manifest already in memory (local override or bundle); no file I/O
+     * after the first read. Snapshot classification reads this. */
     readonly current: Effect.Effect<ModelManifestData>;
-    /** Manifest after a TTL-gated remote refresh; never fails. */
+    /** Re-reads the local override file; never fails. */
     readonly refresh: Effect.Effect<ModelManifestData>;
-    /** Explicit refresh bypasses freshness and retry timers, retaining last-good data. */
+    /** Same as `refresh`; kept so callers that force a reload still compile. */
     readonly forceRefresh: Effect.Effect<ModelManifestData>;
-    /** Forks `refresh` into the service's own scope. Drivers call this from
-     * provider checks: the fetch is process-shared state, so it must survive
-     * the teardown of whichever instance happened to trigger it. */
+    /** Forks `refresh` into the service's own scope. */
     readonly refreshInBackground: Effect.Effect<void>;
   }
 >()("t3/provider/ModelManifest") {}
@@ -380,92 +355,44 @@ export const make = Effect.gen(function* () {
   const fileSystem = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const config = yield* ServerConfig;
-  const settingsService = yield* ServerSettings.ServerSettingsService;
-  const httpClient = yield* HttpClient.HttpClient;
   const serviceScope = yield* Effect.scope;
 
-  const cachePath = path.join(config.stateDir, "model-manifest.json");
+  const localPath = path.join(config.stateDir, LOCAL_MODEL_MANIFEST_FILE);
   let manifest = BUNDLED_MODEL_MANIFEST;
-  let fetchedAtMs: number | null = null;
-  let lastAttemptMs: number | null = null;
-  const refreshSemaphore = yield* Semaphore.make(1);
 
-  // `Effect.cached` makes concurrent first readers await the same disk load
-  // rather than racing a "loaded" flag. Only `refreshed` takes the fetch
-  // semaphore; `current` must never wait behind an in-flight network refresh.
-  const ensureDiskCacheLoaded = yield* Effect.cached(
-    Effect.gen(function* () {
-      const fromDisk = yield* fileSystem.readFileString(cachePath).pipe(
-        Effect.flatMap((raw) => decodeManifestCache(raw)),
-        Effect.catchCause(() => Effect.succeed(null)),
-      );
-      if (fromDisk === null) return;
-      // The disk copy is the last-seen remote manifest, so it outranks the
-      // bundle even when stale, unless the bundle's own edit date is newer
-      // than the cached manifest's. Then the release carries data the cache
-      // has not seen and the cache is dropped so the next refresh replaces
-      // it. Comparing edit dates, not fetch time, keeps this independent of
-      // when the cache was written relative to the release.
-      if (manifestUpdatedAtMs(BUNDLED_MODEL_MANIFEST) > manifestUpdatedAtMs(fromDisk.manifest)) {
-        return;
-      }
-      manifest = fromDisk.manifest;
-      fetchedAtMs = fromDisk.fetchedAtMs;
-    }),
-  );
-
-  const refresh = Effect.fn("ModelManifest.refresh")(function* (force = false) {
-    yield* ensureDiskCacheLoaded;
-    const now = yield* Clock.currentTimeMillis;
-    // A timestamp in the future means the wall clock moved backwards (the
-    // disk cache crosses restarts, so monotonic time cannot cover it). Treat
-    // it as expired: the refetch rewrites both timestamps and self-heals.
-    const isWithin = (sinceMs: number | null, windowMs: number) =>
-      sinceMs !== null && now >= sinceMs && now - sinceMs < windowMs;
-    if (!force && isWithin(fetchedAtMs, MANIFEST_TTL_MS)) return manifest;
-    if (!force && isWithin(lastAttemptMs, MANIFEST_RETRY_MS)) return manifest;
-
-    // The same switch that gates provider CLI update checks. It stops network
-    // fetches only: a manifest already cached on disk from an earlier fetch
-    // stays in effect, since the setting is about phoning home, not about
-    // discarding data the server already holds.
-    const settings = yield* settingsService.getSettings.pipe(
-      Effect.catchCause(() => Effect.succeed(null)),
-    );
-    if (settings !== null && !settings.enableProviderUpdateChecks) return manifest;
-
-    lastAttemptMs = now;
-    const fetched = yield* httpClient.get(MODEL_MANIFEST_URL).pipe(
-      Effect.flatMap(HttpClientResponse.filterStatusOk),
-      Effect.flatMap((response) => response.json),
-      Effect.flatMap((json) => decodeManifest(json)),
-      Effect.timeout(FETCH_TIMEOUT_MS),
-      Effect.catchCause(() => Effect.succeed(null)),
-    );
-    // A CDN can still serve an earlier edit after a release. Apply the same
-    // freshness rule as the disk cache so it cannot undo bundled version gates.
-    if (fetched === null || manifestUpdatedAtMs(fetched) < manifestUpdatedAtMs(manifest)) {
+  // A missing file is the normal case and stays silent. An invalid file, or
+  // one whose `updatedAt` predates the bundle (the release carries newer
+  // data), falls back to the bundle so a stale override cannot hide models.
+  const reload = Effect.gen(function* () {
+    const raw = yield* fileSystem
+      .readFileString(localPath)
+      .pipe(Effect.catchCause(() => Effect.succeed(null)));
+    if (raw === null) {
+      manifest = BUNDLED_MODEL_MANIFEST;
       return manifest;
     }
-
-    manifest = fetched;
-    fetchedAtMs = now;
-    yield* encodeManifestCache({ fetchedAtMs: now, manifest: fetched }).pipe(
-      Effect.flatMap((contents) => writeFileStringAtomically({ filePath: cachePath, contents })),
-      Effect.provideService(FileSystem.FileSystem, fileSystem),
-      Effect.provideService(Path.Path, path),
-      Effect.ignoreCause,
+    const local = yield* decodeManifestJson(raw).pipe(
+      Effect.catchCause((cause) =>
+        Effect.logWarning("Ignoring invalid local model manifest.", {
+          path: localPath,
+          cause,
+        }).pipe(Effect.as(null)),
+      ),
     );
+    manifest =
+      local !== null && manifestUpdatedAtMs(local) >= manifestUpdatedAtMs(BUNDLED_MODEL_MANIFEST)
+        ? local
+        : BUNDLED_MODEL_MANIFEST;
     return manifest;
-  });
+  }).pipe(Effect.withSpan("ModelManifest.reload"));
 
-  const guardedRefresh = refreshSemaphore.withPermits(1)(refresh());
+  const initialLoad = yield* Effect.cached(reload);
 
   return ModelManifest.of({
-    current: ensureDiskCacheLoaded.pipe(Effect.map(() => manifest)),
-    refresh: guardedRefresh,
-    forceRefresh: refreshSemaphore.withPermits(1)(refresh(true)),
-    refreshInBackground: Effect.forkIn(guardedRefresh, serviceScope).pipe(Effect.asVoid),
+    current: initialLoad.pipe(Effect.map(() => manifest)),
+    refresh: reload,
+    forceRefresh: reload,
+    refreshInBackground: Effect.forkIn(reload, serviceScope).pipe(Effect.asVoid),
   });
 });
 

@@ -1,14 +1,17 @@
 # Model manifest
 
-The [bundled manifest](../../apps/server/src/provider/model-manifest.json) allows
-offline startup; fetching it from `main` lets model metadata change between
-releases. Failed fetches or invalid data preserve the last usable manifest.
-Remote data must pass both catalog-reference validation and the owning provider's
-adapter validation before replacing the cache.
+The [bundled manifest](../../apps/server/src/provider/model-manifest.json) is the
+only built-in source; T3 Code EE never fetches it from the network. An admin can
+place a manifest of the same shape at `<stateDir>/model-manifest.local.json` to
+update model metadata between releases. It must pass catalog-reference and
+provider adapter validation, and it only applies when its `updatedAt` is not older
+than the bundle's, so an upgrade cannot be masked by a stale override. Bump
+`updatedAt` whenever either file changes.
 
-A newer bundle outranks the cached remote manifest by `updatedAt`, so a release can
-correct model data before the next successful fetch. Bump `updatedAt` whenever the
-file changes. Fetch time cannot establish which copy contains the newer edit.
+Claude also merges in models the installed Claude Code reports at initialization
+that the manifest does not know (`mergeClaudeReportedModels` in
+[ClaudeProvider.ts](../../apps/server/src/provider/ClaudeProvider.ts)). Those get
+the effort levels Claude Code advertises but no manifest runtime profile.
 
 Generic catalog data describes presentation and capabilities. Each provider owns
 its adapter schema and dispatch mappings. Claude uses the manifest for its entire
@@ -28,6 +31,6 @@ Catalog-aware releases use `providers.claudeAgent.models[].status` instead.
 Codex uses `currentModels.codex` as a legacy-classification overlay for discovered
 models.
 
-Model data is schema-validated configuration. Tests should cover resolver, cache,
+Model data is schema-validated configuration. Tests should cover resolver, local-override,
 and adapter semantics with synthetic model names, so adding a model never requires
 tests that repeat the configuration.

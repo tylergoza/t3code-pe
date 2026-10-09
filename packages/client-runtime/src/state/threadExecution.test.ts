@@ -566,7 +566,7 @@ describe("presentPendingBackgroundWork", () => {
     expect(
       presentPendingBackgroundWork([
         { taskId: "a", kind: "command", description: "vp run dev" },
-        { taskId: "b", kind: "command", description: "tailscale serve" },
+        { taskId: "b", kind: "command", description: "serve" },
       ]),
     ).toMatchObject({ title: "Running 2 commands", waiting: false });
     expect(

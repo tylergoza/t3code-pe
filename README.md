@@ -1,4 +1,17 @@
-# T3 Code
+# T3 Code EE
+
+> [!IMPORTANT]
+> **T3 Code EE** is a privacy-focused fork of [T3 Code](https://github.com/pingdotgg/t3code) for enterprise environments. Compared with upstream:
+>
+> - **No telemetry.** Product analytics (PostHog) and its account-based identity lookup are removed.
+> - **No maintainer network calls.** The model manifest is never fetched from GitHub. The server uses the bundled copy, or an admin-supplied `model-manifest.local.json` in the server state directory. Claude models also come straight from your local Claude Code install.
+> - **No T3 Connect, Clerk, relay, or Tailscale.** Remote access is limited to direct local and LAN connections with pairing.
+> - **No automatic desktop updates** unless a build sets `T3CODE_DESKTOP_UPDATE_REPOSITORY`.
+> - **Separate identity.** Data lives in `~/.t3code-ee`, and the desktop app (`com.t3tools.t3code-ee`) installs alongside upstream T3 Code without sharing state.
+>
+> The install links below are upstream's and install upstream T3 Code. Build this fork from source. Third-party calls you trigger by using a feature still happen, such as provider APIs, npm version checks, and the LiteLLM price table.
+>
+> The rest of this README is upstream's.
 
 T3 Code is an "agent harness control surface". It enables control of the agents on your machine with a best-in-class mobile app ([iOS](https://apps.apple.com/us/app/t3-code-remote-claude-more/id6787819824), [Android](https://play.google.com/store/apps/details?id=com.t3tools.t3code)), [web app](https://app.t3.codes) and [Electron-based desktop app](https://t3.codes).
 

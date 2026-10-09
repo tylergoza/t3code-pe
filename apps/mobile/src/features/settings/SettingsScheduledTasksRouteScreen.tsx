@@ -7,10 +7,7 @@ import type {
   ScheduledTask,
   ScheduledTaskUpsertInput,
 } from "@t3tools/contracts";
-import {
-  MAX_WEBHOOK_DELIVERY_AGE_MINUTES,
-  resolveEnvironmentMachineKind,
-} from "@t3tools/contracts";
+import { resolveEnvironmentMachineKind } from "@t3tools/contracts";
 import type { MenuAction } from "@react-native-menu/menu";
 import { DateTimePicker } from "@expo/ui/community/datetime-picker";
 import {
@@ -18,10 +15,7 @@ import {
   squashAtomCommandFailure,
   type AtomCommandResult,
 } from "@t3tools/client-runtime/state/runtime";
-import {
-  DEFAULT_WEBHOOK_PROMPT,
-  parseMaxDeliveryAge,
-} from "@t3tools/client-runtime/scheduled-task-webhook";
+import { DEFAULT_WEBHOOK_PROMPT } from "@t3tools/client-runtime/scheduled-task-webhook";
 import {
   useCallback,
   useEffect,
@@ -625,16 +619,6 @@ function TaskForm({
         : draft.schedule,
     );
     if (
-      draft.schedule.mode === "webhook" &&
-      parseMaxDeliveryAge(draft.schedule.maxDeliveryAgeMinutes) === undefined
-    ) {
-      Alert.alert(
-        "Invalid age limit",
-        `Enter whole minutes from 1 to ${MAX_WEBHOOK_DELIVERY_AGE_MINUTES}, or leave it blank.`,
-      );
-      return;
-    }
-    if (
       !draft.title.trim() ||
       !draft.prompt.trim() ||
       !draft.projectId ||
@@ -946,17 +930,6 @@ function TaskForm({
               signatureConfigured={draft.schedule.signature !== null}
               disabled={!canOperate || saving || environmentUnavailable}
             />
-            <FormField
-              label="Skip requests older than (minutes)"
-              value={draft.schedule.maxDeliveryAgeMinutes}
-              placeholder="Run every request"
-              keyboardType="number-pad"
-              disabled={saving}
-              borderTop
-              onChange={(maxDeliveryAgeMinutes) =>
-                setDraft({ ...draft, schedule: { ...draft.schedule, maxDeliveryAgeMinutes } })
-              }
-            />
           </>
         ) : (
           <>
@@ -1035,7 +1008,7 @@ function WebhookScheduleDetails({
   const httpBaseUrl =
     preparedConnection._tag === "Some" ? preparedConnection.value.httpBaseUrl : null;
   const webhook = task?.schedule.type === "webhook" ? task.webhook : undefined;
-  // Without T3 Connect, the path is resolved on the address this phone uses.
+  // The path is resolved on the address this phone uses.
   const resolved = webhook ? webhookAddress(webhook, httpBaseUrl) : null;
   return (
     <View className="gap-2 border-t border-border-subtle px-4 py-3">

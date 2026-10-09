@@ -20,10 +20,10 @@ describe("togglePairingScopeSelection", () => {
     },
     {
       label: "drops terminal:operate when terminal:read is cleared",
-      current: ["terminal:read", "terminal:operate", "relay:read"],
+      current: ["terminal:read", "terminal:operate", "filesystem:read"],
       scope: "terminal:read",
       checked: false,
-      expected: ["relay:read"],
+      expected: ["filesystem:read"],
     },
     {
       label: "keeps terminal:read when terminal:operate is cleared",
@@ -180,13 +180,13 @@ describe("selectQrEndpointOption", () => {
       qrShareable: false,
     },
     {
-      id: "tailscale-ip:http://100.84.12.7:4780",
-      preferenceKey: "tailscale:ip:http",
+      id: "lan-ip:http://100.84.12.7:4780",
+      preferenceKey: "lan:ip:http",
       qrShareable: true,
     },
     {
-      id: "tailscale-ip:http://100.84.12.8:4780",
-      preferenceKey: "tailscale:ip:http",
+      id: "lan-ip:http://100.84.12.8:4780",
+      preferenceKey: "lan:ip:http",
       qrShareable: true,
     },
     {
@@ -197,8 +197,8 @@ describe("selectQrEndpointOption", () => {
   ];
 
   it("resolves an explicit selection by unique endpoint id, not the shared preference key", () => {
-    expect(selectQrEndpointOption(options, "tailscale-ip:http://100.84.12.8:4780", null)?.id).toBe(
-      "tailscale-ip:http://100.84.12.8:4780",
+    expect(selectQrEndpointOption(options, "lan-ip:http://100.84.12.8:4780", null)?.id).toBe(
+      "lan-ip:http://100.84.12.8:4780",
     );
   });
 
@@ -209,8 +209,8 @@ describe("selectQrEndpointOption", () => {
   });
 
   it("skips non-QR-shareable options in the fallback so the panel never opens on loopback", () => {
-    expect(selectQrEndpointOption(options, "tailscale-ip:gone", "nope")?.id).toBe(
-      "tailscale-ip:http://100.84.12.7:4780",
+    expect(selectQrEndpointOption(options, "lan-ip:gone", "nope")?.id).toBe(
+      "lan-ip:http://100.84.12.7:4780",
     );
   });
 

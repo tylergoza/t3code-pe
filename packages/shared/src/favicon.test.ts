@@ -9,7 +9,6 @@ describe("faviconUrlForOrigin", () => {
     "http://home.arpa",
     "https://printer.local.",
     "https://api.internal",
-    "https://box.tailnet.ts.net",
     "http://127.1",
     "http://0x7f000001",
     "http://[::]",
