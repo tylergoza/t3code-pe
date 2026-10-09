@@ -9,7 +9,7 @@
 > - **No automatic desktop updates** unless a build sets `T3CODE_DESKTOP_UPDATE_REPOSITORY`.
 > - **Separate identity.** Data lives in `~/.t3code-pe`, and the desktop app (`com.t3tools.t3code-pe`) installs alongside upstream T3 Code without sharing state.
 >
-> The install links below are upstream's and install upstream T3 Code. Build this fork from source. Third-party calls you trigger by using a feature still happen, such as provider APIs, npm version checks, and the LiteLLM price table.
+> **Build it yourself.** T3 Code PE publishes no prebuilt downloads, install scripts, or package-manager entries. You build from source so you can verify everything before you install it. Third-party calls you trigger by using a feature still happen, such as provider APIs, npm version checks, and the LiteLLM price table.
 >
 > The rest of this README is upstream's.
 
@@ -35,61 +35,33 @@ We wanted something performant, remote-ready, and truly open. If we ever go the 
 > - OpenCode: install [OpenCode](https://opencode.ai) and run `opencode auth login`
 > - Antigravity: enable it in Settings, then use **Install Antigravity** and **Sign in with Google**. No CLI is required.
 
-### Command line
+### Build from source
+
+You need Git, Node.js 24, [`vp`](#install-vp), and your platform's build tools (Rust, plus Xcode Command Line Tools on macOS, Visual Studio Build Tools on Windows, or libsecret headers and ImageMagick on Linux).
 
 ```bash
-curl -fsSL https://t3.codes/install.sh | sh
+git clone https://github.com/tylergoza/t3code-pe
+cd t3code-pe
+git checkout <the commit you reviewed>
+vp i
 ```
 
-On Windows, in PowerShell:
-
-```powershell
-irm https://t3.codes/install.ps1 | iex
-```
-
-Then run `t3` to start the server and open the local web app. `t3 service install` keeps it running in the background, `t3 update` moves to a newer release, and `t3 --help` has the full reference.
-
-To try it once without installing, run `npx t3@latest` instead.
-
-### Desktop app
-
-Install the latest version of the desktop app from [GitHub Releases](https://github.com/pingdotgg/t3code/releases), or from your favorite package registry:
-
-#### Windows (`winget`)
+Then build the desktop app for your platform. Installers land in `release/`:
 
 ```bash
-winget install T3Tools.T3Code
+vp run dist:desktop:dmg:arm64   # macOS Apple Silicon (dist:desktop:dmg:x64 for Intel)
+vp run dist:desktop:win         # Windows
+vp run dist:desktop:linux       # Linux AppImage and .deb
 ```
 
-#### macOS (Homebrew)
+Or build and run only the server and web app:
 
 ```bash
-brew install --cask t3-code
+vp run build:desktop
+node apps/server/dist/bin.mjs
 ```
 
-#### Debian, Ubuntu (`.deb`)
-
-Download the `.deb` from [GitHub Releases](https://github.com/pingdotgg/t3code/releases), then:
-
-```bash
-sudo apt install ./T3-Code-PE-*.deb
-```
-
-#### Arch Linux (AUR)
-
-Stable:
-
-```bash
-yay -S t3code-bin
-```
-
-Nightly:
-
-```bash
-yay -S t3code-nightly-bin
-```
-
-The AUR packaging is maintained in this repository under [`packaging/aur`](./packaging/aur).
+To update, fetch, review the changes, and rebuild. [Install and first run](./docs/user/install.md) has the full steps, per-platform prerequisites, and install commands.
 
 ## Some notes
 

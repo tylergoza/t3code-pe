@@ -1,80 +1,75 @@
-# Install T3 Code
+# Install T3 Code PE
 
 T3 Code runs coding agents on your computer and lets you control them from its
-desktop, web, or mobile app. Set up the machine where the agents will work first.
+desktop or web app. T3 Code PE does not publish prebuilt downloads. You build it
+from source, so you can read exactly what you are about to run before you run it.
+Build on the machine where the agents will work.
 
 ## Requirements
 
-You need an installed, authenticated provider before starting a thread. You can
-launch T3 Code and configure providers afterwards.
+- Git and Node.js 24.
+- `vp`, the Vite+ command-line tool
+  ([Install vp](../../README.md#install-vp)).
+- The build tools for your platform, listed under
+  [Desktop app](#desktop-app).
+- An installed, authenticated provider before starting a thread. You can build
+  and launch T3 Code PE first and configure providers afterwards.
 
-## Command line
-
-```bash
-curl -fsSL https://t3.codes/install.sh | sh
-```
-
-On Windows, in PowerShell:
-
-```powershell
-irm https://t3.codes/install.ps1 | iex
-```
-
-This puts `t3` in `~/.local/bin`. If your shell reports `command not found`
-afterwards, that directory is not on your `PATH` yet; the installer prints the
-line to add. Set `T3CODE_CHANNEL=nightly` to install the nightly train, or
-`T3CODE_VERSION` to pin an exact version.
-
-| Task                                             | Command                                                   |
-| ------------------------------------------------ | --------------------------------------------------------- |
-| Start the server and open the web app            | `t3`                                                      |
-| Start the server without a browser               | `t3 serve`                                                |
-| Keep it running in the background (macOS, Linux) | `t3 service install` ([details](./background-service.md)) |
-| Move to the newest release                       | `t3 update`                                               |
-| Remove it again                                  | `t3 uninstall`                                            |
-
-Run `t3 help` or `t3 --help` for the full reference. To start in a new working
-directory, use an explicit path such as `t3 ./my-project`. A bare directory name
-is accepted only if it already exists.
-
-If `t3` or `t3 start` reports an already running server, connect to that server
-instead. Stop it before starting a replacement, or use a different `--base-dir`
-for an independent server.
-
-To try T3 Code once without installing it, run `npx t3@latest` instead (needs
-Node.js for `npx`).
-
-### Intel Macs
-
-There is no `t3` executable for Intel Macs (the desktop app is available). To
-run a server there, build it from source with Node.js 24 and `vp`
-([Install vp](https://github.com/pingdotgg/t3code#install-vp)):
+## Get and review the source
 
 ```bash
-git clone https://github.com/pingdotgg/t3code
-cd t3code && vp i && vp run build:desktop
-node apps/server/dist/bin.mjs
+git clone https://github.com/tylergoza/t3code-pe
+cd t3code-pe
 ```
 
-`t3 update` and the background service do not apply to a server run this way;
-update it with `git pull` and a rebuild.
+Review the code, then check out the exact commit you reviewed so the build
+matches it:
+
+```bash
+git checkout <commit>
+vp i
+```
+
+`vp i` downloads the npm dependencies pinned in `pnpm-lock.yaml`. Review that
+file too if you want to check the dependency tree.
 
 ## Desktop app
 
-Download a release from [GitHub Releases](https://github.com/pingdotgg/t3code/releases),
-or use a package manager:
+The desktop app runs a server on your computer and includes the `t3` command.
+From the repository root:
 
-| Platform           | Install                            |
-| ------------------ | ---------------------------------- |
-| Windows            | `winget install T3Tools.T3Code`    |
-| macOS              | `brew install --cask t3-code`      |
-| Debian, Ubuntu     | `sudo apt install ./T3-Code-PE-*.deb` |
-| Arch Linux         | `yay -S t3code-bin`                |
-| Arch Linux nightly | `yay -S t3code-nightly-bin`        |
+| Platform              | Build                            | Output in `release/`                    |
+| --------------------- | -------------------------------- | --------------------------------------- |
+| macOS (Apple Silicon) | `vp run dist:desktop:dmg:arm64`  | `T3-Code-PE-<version>-arm64.dmg`        |
+| macOS (Intel)         | `vp run dist:desktop:dmg:x64`    | `T3-Code-PE-<version>-x64.dmg`          |
+| Windows               | `vp run dist:desktop:win`        | `T3-Code-PE-<version>-<arch>.exe`       |
+| Linux                 | `vp run dist:desktop:linux`      | `.AppImage` and `.deb`                  |
 
-The `.deb` updates itself like the other desktop builds. It asks for your
-password to install each update. If your desktop has no password prompt, the
-update fails. Download the new `.deb` and install it the same way.
+Each platform needs its own build tools:
+
+- **macOS:** Xcode Command Line Tools (`xcode-select --install`) and
+  [Rust](https://rustup.rs).
+- **Windows:** [Rust](https://rustup.rs), Python 3, and Visual Studio Build
+  Tools with **Desktop development with C++**.
+- **Linux:** build on Linux with Rust, C/C++ build tools, libsecret headers,
+  pkg-config, and ImageMagick. On Debian and Ubuntu:
+  `sudo apt-get install cargo rustc build-essential libsecret-1-dev pkg-config imagemagick`.
+
+The [development guide](../operations/development.md#desktop-artifacts) has the
+full prerequisite lists for each platform.
+
+Then install the build:
+
+- **macOS:** open the `.dmg` and drag T3 Code PE to Applications.
+- **Windows:** run the `.exe` installer.
+- **Debian, Ubuntu:** `sudo apt install ./release/T3-Code-PE-*.deb`.
+- **Other Linux:** mark the `.AppImage` executable and run it.
+
+Builds are unsigned. They open normally on the machine that built them. macOS
+and Windows warn about them when you copy them to another computer.
+
+T3 Code PE installs alongside upstream T3 Code and keeps its data in
+`~/.t3code-pe`.
 
 ### The `t3` command
 
@@ -88,9 +83,10 @@ from npm, it stays as it is.
 ### Windows Subsystem for Linux
 
 Choose a WSL distro in **Settings → Connections** to run agents and projects
-there. Install the provider CLIs inside that distro. T3 Code installs its own
-server runtime there automatically; the first launch after an app update can
-take longer.
+there. Install the provider CLIs inside that distro. T3 Code installs its server
+runtime there from the copy bundled in the installer. A Windows build includes
+that copy only when built with the Linux CLI archive; see the
+[release runbook](../operations/release.md#windows-payload-topology-and-update-validation).
 
 ### Open a project from a terminal
 
@@ -103,29 +99,54 @@ t3 app
 This opens a new thread for the current directory, adding the project if needed.
 Pass a path, such as `t3 app ../my-project`, to open another directory. It requires
 the desktop app, so a standalone server or an SSH session is not enough. If the
-command cannot reach the app, start or update the desktop app and try again.
+command cannot reach the app, start the desktop app and try again.
+
+## Command line
+
+To run only the server and use the web app in a browser, build it from the
+repository root and start it with Node.js:
+
+```bash
+vp run build:desktop
+node apps/server/dist/bin.mjs
+```
+
+This starts the server and opens the local web app. The same entry point takes
+the `t3` subcommands, such as `node apps/server/dist/bin.mjs serve` to start
+without a browser. Run `node apps/server/dist/bin.mjs --help` for the full
+reference.
+
+To start in a new working directory, pass an explicit path such as
+`node apps/server/dist/bin.mjs ./my-project`. A bare directory name is accepted
+only if it already exists.
+
+If the server reports an already running server, connect to that server instead.
+Stop it before starting a replacement, or use a different `--base-dir` for an
+independent server.
+
+`t3 update`, `t3 service install`, and the hosted install scripts download
+published release archives. T3 Code PE does not publish any, so these do not
+work with a source build.
+
+## Updating
+
+Fetch the new code and review what changed before building it:
+
+```bash
+git fetch
+git log -p HEAD..origin/main
+git checkout <commit>
+vp i
+```
+
+Then rebuild and reinstall the desktop app, or rebuild and restart the server,
+the same way you installed it. Your projects, threads, and settings in
+`~/.t3code-pe` are kept. Desktop builds do not update themselves.
 
 ## Mobile app
 
-Install T3 Code from the
-[App Store](https://apps.apple.com/us/app/t3-code-remote-claude-more/id6787819824) or
-[Google Play](https://play.google.com/store/apps/details?id=com.t3tools.t3code).
-The phone connects to a server on another machine. Follow
-[remote access](./remote-access.md) to link it with a pairing URL.
-
-Nightly builds need the beta app. The store apps cannot connect to them. A Nightly build also
-shows these links as QR codes in **Settings → General → Mobile app**.
-
-- **iPhone and iPad:** join the [TestFlight beta](https://testflight.apple.com/join/XgaxaRtd).
-- **Android:** join the [beta group](https://groups.google.com/g/t3-code-v2-beta). With the same
-  Google account, open the [Google Play testing page](https://play.google.com/apps/testing/com.t3tools.t3code)
-  and become a tester.
-
-If the app crashes during launch, open Settings → Diagnostics on the next launch
-that succeeds. It lists startup crashes from the last 7 days with the error and
-component stack that store crash reports leave out. Copy the report and paste it
-into a GitHub issue. Error messages can quote values from the app, so read it over
-before sharing.
+T3 Code PE does not publish a mobile app. The upstream T3 Code store apps are a
+separate product.
 
 ## Providers
 
@@ -180,5 +201,4 @@ For provider-specific setup and accounts, see [Codex](./providers-codex.md),
 - [Working with threads](./thread-sidebar.md): start tasks and organize parallel work.
 - [Permission modes](./permission-modes.md): choose when agents ask before acting.
 - [Remote access](./remote-access.md): connect from another device.
-- [Running in the background](./background-service.md): keep a Linux or macOS host available.
-- [Updating T3 Code](./updating.md): update the app and connected servers.
+- [Updating T3 Code PE](#updating): fetch, review, and rebuild.
