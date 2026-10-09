@@ -1,7 +1,7 @@
 # Model manifest
 
 The [bundled manifest](../../apps/server/src/provider/model-manifest.json) is the
-only built-in source; T3 Code EE never fetches it from the network. An admin can
+only built-in source; T3 Code PE never fetches it from the network. An admin can
 place a manifest of the same shape at `<stateDir>/model-manifest.local.json` to
 update model metadata between releases. It must pass catalog-reference and
 provider adapter validation, and it only applies when its `updatedAt` is not older

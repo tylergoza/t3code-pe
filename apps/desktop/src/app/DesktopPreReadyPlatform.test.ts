@@ -93,13 +93,13 @@ describe("DesktopPreReadyPlatform", () => {
     let desktopEntry = previousEntry;
     let iconInstalled = false;
     copyFileSyncMock.mockImplementation((_source: string, destination: string) => {
-      iconInstalled = destination === "/xdg/icons/com.t3tools.T3CodeEE.desktop.png";
+      iconInstalled = destination === "/xdg/icons/com.t3tools.T3CodePE.desktop.png";
     });
     setDesktopNameMock.mockImplementation((name: string) => {
       desktopName = name;
     });
     writeFileSyncMock.mockImplementation((path: string, contents: string) => {
-      if (path === "/xdg/applications/com.t3tools.T3CodeEE.desktop") desktopEntry = contents;
+      if (path === "/xdg/applications/com.t3tools.T3CodePE.desktop") desktopEntry = contents;
     });
 
     return Effect.scoped(
@@ -115,13 +115,13 @@ describe("DesktopPreReadyPlatform", () => {
           ),
         );
         const identity = yield* Effect.promise(() => portalIdentity);
-        assert.equal(identity.desktopName, "com.t3tools.T3CodeEE.desktop");
+        assert.equal(identity.desktopName, "com.t3tools.T3CodePE.desktop");
         assert.include(identity.desktopEntry ?? "", 'Exec="/Applications/current.AppImage" %U');
-        assert.include(identity.desktopEntry ?? "", "Name=T3 Code EE (Alpha)");
-        assert.include(identity.desktopEntry ?? "", "MimeType=x-scheme-handler/t3code-ee;");
+        assert.include(identity.desktopEntry ?? "", "Name=T3 Code PE (Alpha)");
+        assert.include(identity.desktopEntry ?? "", "MimeType=x-scheme-handler/t3code-pe;");
         assert.include(
           identity.desktopEntry ?? "",
-          "Icon=/xdg/icons/com.t3tools.T3CodeEE.desktop.png",
+          "Icon=/xdg/icons/com.t3tools.T3CodePE.desktop.png",
         );
         assert.isTrue(identity.iconInstalled);
       }),
@@ -148,7 +148,7 @@ describe("DesktopPreReadyPlatform", () => {
     return Effect.gen(function* () {
       yield* DesktopPreReadyPlatform.make;
       const contents = writeFileSyncMock.mock.calls[0]?.[1];
-      assert.include(contents, "MimeType=x-scheme-handler/t3code-ee;");
+      assert.include(contents, "MimeType=x-scheme-handler/t3code-pe;");
       assert.include(contents, "Icon=");
       assert.equal(setDesktopNameMock.mock.calls.length, 1);
     }).pipe(Effect.provideService(HostProcessPlatform, "linux"));

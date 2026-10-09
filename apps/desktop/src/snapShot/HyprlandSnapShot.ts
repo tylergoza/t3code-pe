@@ -17,7 +17,7 @@ export type HyprlandCapturePaths = { readonly bundle: string; readonly dataHome:
 export function hyprlandCaptureExecutable(paths: HyprlandCapturePaths) {
   return NodePath.join(
     paths.dataHome,
-    "t3code-ee",
+    "t3code-pe",
     "hyprland-capture",
     HYPRLAND_CAPTURE_EXECUTABLE,
   );

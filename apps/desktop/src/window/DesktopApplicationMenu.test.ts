@@ -144,21 +144,21 @@ describe("DesktopApplicationMenu", () => {
       const template = yield* Deferred.await(applicationMenuTemplate);
       const applicationMenu = template[0];
       assert.isDefined(applicationMenu);
-      assert.equal(applicationMenu.label, "T3 Code EE (Nightly)");
+      assert.equal(applicationMenu.label, "T3 Code PE (Nightly)");
       if (!Array.isArray(applicationMenu.submenu)) {
         throw new Error("Expected application menu submenu to be an array.");
       }
       assert.equal(
         applicationMenu.submenu.find((item) => item.role === "about")?.label,
-        "About T3 Code EE (Nightly)",
+        "About T3 Code PE (Nightly)",
       );
       assert.equal(
         applicationMenu.submenu.find((item) => item.role === "hide")?.label,
-        "Hide T3 Code EE (Nightly)",
+        "Hide T3 Code PE (Nightly)",
       );
       assert.equal(
         applicationMenu.submenu.find((item) => item.role === "quit")?.label,
-        "Quit T3 Code EE (Nightly)",
+        "Quit T3 Code PE (Nightly)",
       );
     }),
   );

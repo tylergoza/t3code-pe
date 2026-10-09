@@ -1,13 +1,13 @@
-# T3 Code EE
+# T3 Code PE
 
 > [!IMPORTANT]
-> **T3 Code EE** is a privacy-focused fork of [T3 Code](https://github.com/pingdotgg/t3code) for enterprise environments. Compared with upstream:
+> **T3 Code PE** (Privacy Enhanced) is a privacy-focused fork of [T3 Code](https://github.com/pingdotgg/t3code). Compared with upstream:
 >
 > - **No telemetry.** Product analytics (PostHog) and its account-based identity lookup are removed.
 > - **No maintainer network calls.** The model manifest is never fetched from GitHub. The server uses the bundled copy, or an admin-supplied `model-manifest.local.json` in the server state directory. Claude models also come straight from your local Claude Code install.
 > - **No T3 Connect, Clerk, relay, or Tailscale.** Remote access is limited to direct local and LAN connections with pairing.
 > - **No automatic desktop updates** unless a build sets `T3CODE_DESKTOP_UPDATE_REPOSITORY`.
-> - **Separate identity.** Data lives in `~/.t3code-ee`, and the desktop app (`com.t3tools.t3code-ee`) installs alongside upstream T3 Code without sharing state.
+> - **Separate identity.** Data lives in `~/.t3code-pe`, and the desktop app (`com.t3tools.t3code-pe`) installs alongside upstream T3 Code without sharing state.
 >
 > The install links below are upstream's and install upstream T3 Code. Build this fork from source. Third-party calls you trigger by using a feature still happen, such as provider APIs, npm version checks, and the LiteLLM price table.
 >

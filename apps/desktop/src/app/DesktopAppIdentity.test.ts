@@ -155,7 +155,7 @@ describe("DesktopAppIdentity", () => {
         const identity = yield* DesktopAppIdentity.DesktopAppIdentity;
         const userDataPath = yield* identity.resolveUserDataPath;
 
-        assert.equal(userDataPath, "/Users/alice/Library/Application Support/t3code-ee");
+        assert.equal(userDataPath, "/Users/alice/Library/Application Support/t3code-pe");
       }),
       { legacyPathExists: true },
     ),
@@ -167,7 +167,7 @@ describe("DesktopAppIdentity", () => {
         const identity = yield* DesktopAppIdentity.DesktopAppIdentity;
         assert.equal(
           yield* identity.resolveUserDataPath,
-          "/Users/alice/Library/Application Support/t3code-ee-dev",
+          "/Users/alice/Library/Application Support/t3code-pe-dev",
         );
       }),
       {
@@ -189,8 +189,8 @@ describe("DesktopAppIdentity", () => {
         const identity = yield* DesktopAppIdentity.DesktopAppIdentity;
         yield* identity.configure;
 
-        assert.deepEqual(calls.setName, ["T3 Code EE Alpha"]);
-        assert.equal(calls.setAboutPanelOptions[0]?.applicationName, "T3 Code EE (Alpha)");
+        assert.deepEqual(calls.setName, ["T3 Code PE Alpha"]);
+        assert.equal(calls.setAboutPanelOptions[0]?.applicationName, "T3 Code PE (Alpha)");
         assert.equal(calls.setAboutPanelOptions[0]?.applicationVersion, "1.2.3");
         assert.equal(calls.setAboutPanelOptions[0]?.version, "0123456789ab");
         // Packaged: the bundle's own icon stands, so a custom one the user
@@ -233,10 +233,10 @@ describe("DesktopAppIdentity", () => {
 
         const runtimeName = calls.setName[0];
         assert.isDefined(runtimeName);
-        assert.equal(runtimeName, `T3 Code EE ${stage}`);
+        assert.equal(runtimeName, `T3 Code PE ${stage}`);
         // RFC 9110's token grammar, after Electron removes ASCII spaces.
         assert.match(runtimeName.replaceAll(" ", ""), /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/);
-        assert.equal(calls.setAboutPanelOptions[0]?.applicationName, `T3 Code EE (${stage})`);
+        assert.equal(calls.setAboutPanelOptions[0]?.applicationName, `T3 Code PE (${stage})`);
       }),
       { calls, environment },
     );

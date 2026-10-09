@@ -13,7 +13,7 @@ import * as DesktopEnvironment from "./DesktopEnvironment.ts";
 /**
  * Carries the renderer's localStorage (prompt stash, unsent drafts, layout,
  * theme) over from the V1 desktop profile, which V2 replaced with its own
- * `t3code-ee` profile. The V1 profile is only read, never opened by Chromium,
+ * `t3code-pe` profile. The V1 profile is only read, never opened by Chromium,
  * so this works while V1 is still running.
  *
  * `load` runs before the window opens; the preload takes the items once,
@@ -31,7 +31,7 @@ export class DesktopLegacyLocalStorage extends Context.Service<
 >()("@t3tools/desktop/app/DesktopLegacyLocalStorage") {}
 
 const MARKER_FILE_NAME = "v1-local-storage-imported";
-// T3 Code EE never imports upstream T3 Code profiles, so there is no legacy source.
+// T3 Code PE never imports upstream T3 Code profiles, so there is no legacy source.
 const V1_PROFILE_NAMES: ReadonlyArray<string> = [];
 
 const make = Effect.gen(function* () {
