@@ -10,6 +10,15 @@ describe("buildRuntimeInstructions", () => {
     expect(instructions).toContain("call list_thread_pull_requests and link any PR");
   });
 
+  it("omits PR linking guidance when the t3-code MCP server is absent", () => {
+    const instructions = buildRuntimeInstructions({
+      harness: "Claude Code",
+      pullRequestLinking: false,
+    });
+    expect(instructions).toContain("through the Claude Code harness.");
+    expect(instructions).not.toContain("link_pull_request");
+  });
+
   it("keeps known model and effort metadata on one line", () => {
     expect(
       buildRuntimeInstructions({

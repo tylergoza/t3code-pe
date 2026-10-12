@@ -723,6 +723,24 @@ describe("ClaudeAdapterV2 native protocol logging", () => {
       assert.equal(systemPrompt.type, "preset");
       assert.equal(systemPrompt.preset, "claude_code");
       assert.include(systemPrompt.append ?? "", "Use `delegate_task`");
+
+      const subagentOptions = ClaudeAdapterV2.makeClaudeQueryOptions({
+        modelSelection: {
+          instanceId: ProviderInstanceId.make("claudeAgent"),
+          model: "claude-sonnet-4-6",
+        },
+        nativeThreadId: "native-thread-claude-mcp-subagent",
+        resume: false,
+        cwd: "/workspace",
+        ...overrides,
+        subagentThread: true,
+      });
+      const subagentAppend =
+        (subagentOptions.systemPrompt as { readonly append?: string }).append ?? "";
+      assert.notInclude(subagentAppend, "T3 Code orchestration");
+      assert.notInclude(subagentAppend, "link_pull_request");
+      assert.include(subagentAppend, "Do not open or update pull requests");
+      assert.deepEqual(subagentOptions.mcpServers, overrides.mcpServers);
       const logged = ClaudeAdapterV2.loggedClaudeQueryOptions(options);
       assert.equal(logged.hasMcpServers, true);
       assert.notInclude(JSON.stringify(logged), "secret-claude-token");
