@@ -18,6 +18,7 @@ describe("T3 orchestration provider instructions", () => {
       T3_CODE_ORCHESTRATION_INSTRUCTIONS,
       "Do not use `t3_thread_send` on `childThreadId`",
     );
+    assert.include(T3_CODE_ORCHESTRATION_INSTRUCTIONS, "Delegated tasks never open pull requests");
   });
 
   it("documents structured schedules instead of JSON strings", () => {
